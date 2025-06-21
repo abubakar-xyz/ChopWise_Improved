@@ -21,7 +21,11 @@ def load_data(path='FoodPrices_Dataset.csv'):
 if __name__ == '__main__':
     df = load_data()
     y = df['UPRICE']
-    X = df.drop(columns=['Date','Outlet Type','Country','Sector','Price','UPRICE'])
+    
+    cols_to_drop = ['Date', 'Outlet Type', 'Country', 'Sector', 'Price', 'UPRICE']
+    cols_existing = [col for col in cols_to_drop if col in df.columns]
+    
+    X = df.drop(columns=cols_existing)
     model = RandomForestRegressor(n_estimators=100, random_state=42)
     model.fit(X, y)
     with open('model.pkl', 'wb') as f:

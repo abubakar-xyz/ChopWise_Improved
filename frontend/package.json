@@ -11,6 +11,9 @@
     "react": "latest",
     "react-dom": "latest",
     "axios": "^1.5.0",
-    "papaparse": "^5.3.1"
+    "papaparse": "^5.3.1",
+    "framer-motion": "^10.12.16",
+    "@shadcn/ui": "^0.2.5",
+    "lucide-react": "^0.276.0"
   }
 }

@@ -1,0 +1,49 @@
+name: CI – Frontend Build
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  build-frontend:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Print Node & NPM versions
+        run: |
+          node -v
+          npm -v
+
+      - name: Install jq for JSON validation
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Validate package.json
+        working-directory: frontend
+        run: jq . package.json >/dev/null
+
+      - name: Install dependencies & build
+        working-directory: frontend
+        run: |
+          chmod +x build.sh
+          ./build.sh
+
+      - name: Archive build output
+        if: success()
+        uses: actions/upload-artifact@v3
+        with:
+          name: frontend-build
+          path: frontend/out

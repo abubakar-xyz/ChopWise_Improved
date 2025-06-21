@@ -4,7 +4,15 @@ import pickle
 
 def load_data(path='FoodPrices_Dataset.csv'):
     df = pd.read_csv(path, parse_dates=['Date'], dayfirst=True)
-    df = pd.get_dummies(df, columns=['State','LGA','Food Item','Category'])
+    # Identify all columns we want to encode
+    cols_to_encode = ['State', 'LGA', 'Food Item', 'Category']
+    
+    # Filter out any that are missing
+    cols_existing = [col for col in cols_to_encode if col in df.columns]
+    
+    # Apply one-hot encoding
+    df = pd.get_dummies(df, columns=cols_existing)
+
     df['day'] = df['Date'].dt.day
     df['month'] = df['Date'].dt.month
     df['year'] = df['Date'].dt.year

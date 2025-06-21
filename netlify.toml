@@ -1,0 +1,6 @@
+[build]
+  command = "cd frontend && npm install && npm run export"
+  publish = "frontend/out"
+
+[context.production.environment]
+  BACKEND_URL = "https://your-backend.onrender.com"

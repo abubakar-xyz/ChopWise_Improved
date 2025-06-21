@@ -1,0 +1,15 @@
+# Node
+frontend/node_modules/
+backend/.venv/
+backend/__pycache__/
+*.py[cod]
+
+# Next.js output
+frontend/.next/
+frontend/out/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store

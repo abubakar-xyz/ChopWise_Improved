@@ -2,14 +2,15 @@ import { Html, Head, Main, NextScript } from 'next/document';
 
 export default function Document() {
   return (
-    <Html lang="en" className="bg-dark-bg">
+    <Html lang="en">
       <Head>
         <link
-          href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Orbitron:wght@400;700&display=swap"
           rel="stylesheet"
         />
+        <meta name="theme-color" content="#0A0F1A" />
       </Head>
-      <body className="font-sans text-gray-200">
+      <body>
         <Main />
         <NextScript />
       </body>

@@ -2,7 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom overrides */
+/* Animated background */
+@keyframes gradientShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
 body {
-  @apply bg-gray-50 text-gray-800;
+  @apply font-sans text-brand-light bg-dark-gradient;
+  background-size: 400% 400%;
+  animation: gradientShift 30s ease infinite;
+}
+
+.section-bg {
+  @apply bg-accent-xlight backdrop-blur-lg rounded-3xl p-8 shadow-2xl;
+}
+
+.text-futuristic {
+  @apply font-futuristic;
+}
+
+.btn-primary {
+  @apply bg-brand-green text-white font-semibold rounded-lg px-6 py-3 hover:bg-accent-deep transition;
 }

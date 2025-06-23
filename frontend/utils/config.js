@@ -1,1 +1,2 @@
-export const BACKEND_URL = process.env.BACKEND_URL;
+// frontend/utils/config.js
+export const BACKEND_URL = "https://chopwise-improved.onrender.com";

@@ -1,38 +1,57 @@
-import Head from 'next/head';
-import Header from '../components/Header';
-import Chatbot from '../components/Chatbot';
+import { useEffect } from 'react';
 
 export default function Home() {
+  useEffect(() => {
+    const div = document.getElementById('viz1750358814595');
+    if (!div) return;
+    // Remove any existing script
+    const existing = document.querySelector('#tableau-script');
+    if (existing) existing.remove();
+
+    // Insert Tableau JS API
+    const script = document.createElement('script');
+    script.id = 'tableau-script';
+    script.src = 'https://public.tableau.com/javascripts/api/viz_v1.js';
+    div.appendChild(script);
+  }, []);
+
   return (
-    <>
-      <Head>
-        <title>ChopWise – Smart Food Price Chatbot</title>
-      </Head>
-
-      <Header />
-
-      <main className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Left Panel */}
-        <section className="space-y-6">
-          <div className="bg-teal-50 p-6 rounded-lg shadow">
-            <h2 className="text-2xl font-semibold text-teal-800 mb-2">How To Use ChopWise</h2>
-            <ul className="list-disc list-inside text-slate-700 space-y-1">
-              <li><span className="font-medium">Price Lookup:</span> “price of maize white in Lagos”</li>
-              <li><span className="font-medium">Forecast:</span> “predict price of beans in Abuja 3 months”</li>
-              <li><span className="font-medium">Help:</span> Type “help”</li>
-            </ul>
-          </div>
-          <div className="bg-white rounded-lg overflow-hidden shadow">
-            {/* Tableau Embed */}
-            <div id="viz1750358814595" className="w-full h-[60vh]"></div>
-          </div>
-        </section>
-
-        {/* Right Panel: Chatbot */}
-        <section className="flex justify-center">
-          <Chatbot />
-        </section>
-      </main>
-    </>
+    <div>
+      {/* … your header / layout … */}
+      <section className="bg-white rounded-lg overflow-hidden shadow">
+        <div
+          id="viz1750358814595"
+          className="tableauPlaceholder w-full h-[60vh]"
+          style={{ position: 'relative' }}
+        >
+          <noscript>
+            <a href="#">
+              <img
+                alt="HOMEPAGE"
+                src="https://public.tableau.com/static/images/46/463G55YGM/1_rss.png"
+                style={{ border: 'none', width: '100%', height: '100%' }}
+              />
+            </a>
+          </noscript>
+          <object
+            className="tableauViz"
+            style={{ display: 'none', width: '1200px', height: '827px' }}
+          >
+            <param name="host_url" value="https%3A%2F%2Fpublic.tableau.com%2F" />
+            <param name="embed_code_version" value="3" />
+            <param name="path" value="shared/463G55YGM" />
+            <param name="toolbar" value="yes" />
+            <param name="static_image" value="https://public.tableau.com/static/images/46/463G55YGM/1.png" />
+            <param name="animate_transition" value="yes" />
+            <param name="display_static_image" value="yes" />
+            <param name="display_spinner" value="yes" />
+            <param name="display_overlay" value="yes" />
+            <param name="display_count" value="yes" />
+            <param name="language" value="en-US" />
+          </object>
+        </div>
+      </section>
+      {/* … */}
+    </div>
   );
 }

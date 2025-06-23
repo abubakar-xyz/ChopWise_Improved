@@ -24,29 +24,7 @@ export default function Home() {
           </div>
           <div className="bg-white rounded-lg overflow-hidden shadow">
             {/* Tableau Embed */}
-            <div id="viz1750358814595" className="w-full h-[60vh]">
-              <noscript>
-                <a href="#">
-                  <img
-                    alt="HOMEPAGE"
-                    src="https://public.tableau.com/static/images/46/463G55YGM/1_rss.png"
-                    className="w-full h-full object-cover"
-                  />
-                </a>
-              </noscript>
-              <object
-                className="tableauViz"
-                style={{ display: 'none', width: '100%', height: '100%' }}
-              >
-                <param name="host_url" value="https%3A%2F%2Fpublic.tableau.com%2F" />
-                <param name="embed_code_version" value="3" />
-                <param name="path" value="shared/463G55YGM" />
-                <param name="toolbar" value="yes" />
-                <param name="display_count" value="yes" />
-                <param name="language" value="en-US" />
-              </object>
-              <script src="https://public.tableau.com/javascripts/api/viz_v1.js" />
-            </div>
+            <div id="viz1750358814595" className="w-full h-[60vh]"></div>
           </div>
         </section>
 

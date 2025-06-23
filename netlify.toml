@@ -3,4 +3,4 @@
   publish = "frontend/out"
 
 [context.production.environment]
-  BACKEND_URL = "https://chopwise-improved.onrender.com"
+  NEXT_PUBLIC_BACKEND_URL = "https://chopwise-improved.onrender.com"

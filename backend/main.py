@@ -55,7 +55,7 @@ def chat(req: Request):
     if "help" in text or "usage" in text:
         return {"reply": format_reply([
             "No worries—I can help! Try: “price of maize white in Lagos” or “predict price of beans in Abuja 3 months.”",
-            "I'm here for you! You could ask: “price of yam in Kano” or just type “help” for more tips.",
+            "I'm here for you! You could ask: “price of yam in Kano”",
             "Feel free to say something like “price of garri in Lokoja” or type “help” if you're stuck."
         ])}
 
@@ -98,3 +98,4 @@ def chat(req: Request):
         "Here's the update: **₦{price:.2f}** is current for {food}{loc}. {sugg}"
     ],
         food  = found_food,
+    )

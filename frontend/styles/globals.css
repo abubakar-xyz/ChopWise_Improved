@@ -16,6 +16,83 @@ body {
   animation: gradientShift 30s ease infinite;
 }
 
+/* Glassmorphism and earthy theme */
+body {
+  background: linear-gradient(135deg, #E9D8C3 0%, #F6E7D7 100%);
+  color: #3B2F23;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 32px 0 rgba(60, 40, 20, 0.18);
+  backdrop-filter: blur(8px);
+  border-radius: 1.5rem;
+  border: 1px solid rgba(124, 79, 42, 0.18);
+}
+
+.btn-primary {
+  background: linear-gradient(90deg, #7C4F2A 0%, #3B2F23 100%);
+  color: #fff;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+.btn-primary:hover {
+  background: linear-gradient(90deg, #3B2F23 0%, #7C4F2A 100%);
+}
+
+.header {
+  background: #3B2F23;
+  color: #F6E7D7;
+}
+
+.footer {
+  background: #7C4F2A;
+  color: #E9D8C3;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  background: #E9D8C3;
+}
+::-webkit-scrollbar-thumb {
+  background: #7C4F2A;
+  border-radius: 4px;
+}
+
+/* Chatbot message bubbles */
+.user-message {
+  background: #E9D8C3;
+  color: #3B2F23;
+  border-radius: 1rem 1rem 0.25rem 1rem;
+}
+.bot-message {
+  background: #7C4F2A;
+  color: #fff;
+  border-radius: 1rem 1rem 1rem 0.25rem;
+}
+
+/* Utility classes for earthy theme */
+.bg-earth {
+  background: #E9D8C3;
+}
+.text-earth {
+  color: #3B2F23;
+}
+.bg-brown {
+  background: #7C4F2A;
+}
+.text-brown {
+  color: #7C4F2A;
+}
+.bg-tan {
+  background: #F6E7D7;
+}
+.text-tan {
+  color: #E9D8C3;
+}
+
 /* Utility classes */
 .btn-primary {
   @apply bg-brand-green text-black font-semibold rounded-full px-6 py-3 hover:bg-opacity-90 transition;

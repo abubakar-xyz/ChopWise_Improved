@@ -172,6 +172,7 @@ export default function Home() {
                 </form>
               </div>
               <span className="text-xs text-brand-light/60 mt-2">Powered by AI & real market data</span>
+              <span className="text-xs text-brand-light/60 mt-1 block">Chatbot was trained on data from the Nigerian Food Price Tracking Dataset from the Nigeria Bureau of Statistics.</span>
             </div>
           </div>
         </section>

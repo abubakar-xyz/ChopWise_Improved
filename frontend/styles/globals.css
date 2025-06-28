@@ -101,3 +101,44 @@ body {
 .glassmorphism {
   @apply bg-accent-xlight backdrop-blur-lg rounded-3xl p-8 shadow-2xl;
 }
+
+/* Modern animated button with glow and gradient */
+.btn-primary-glow {
+  background: linear-gradient(90deg, #FFD700 0%, #7C4F2A 100%);
+  color: #3B2F23;
+  border-radius: 1rem;
+  font-weight: 700;
+  box-shadow: 0 0 24px 6px #FFD700, 0 0 60px 10px #7C4F2A;
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow 0.3s, background 0.2s;
+}
+.btn-primary-glow:hover {
+  background: linear-gradient(90deg, #7C4F2A 0%, #FFD700 100%);
+  box-shadow: 0 0 40px 10px #FFD700, 0 0 80px 20px #7C4F2A;
+}
+
+@keyframes glow-gradient {
+  0% { box-shadow: 0 0 24px 6px #FFD700, 0 0 60px 10px #7C4F2A; }
+  50% { box-shadow: 0 0 40px 20px #FFD700, 0 0 80px 30px #7C4F2A; }
+  100% { box-shadow: 0 0 24px 6px #FFD700, 0 0 60px 10px #7C4F2A; }
+}
+.animate-glow-gradient {
+  animation: glow-gradient 2.5s infinite alternate;
+}
+
+/* Nav button style for modern look */
+.nav-btn {
+  position: relative;
+  padding: 0.5rem 1.2rem;
+  border-radius: 0.75rem;
+  background: linear-gradient(90deg, #FFD70022 0%, #7C4F2A11 100%);
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+  font-weight: 600;
+  outline: none;
+}
+.nav-btn:focus, .nav-btn:hover {
+  background: linear-gradient(90deg, #FFD70055 0%, #7C4F2A33 100%);
+  color: #FFD700;
+  box-shadow: 0 0 8px 2px #FFD70044;
+}

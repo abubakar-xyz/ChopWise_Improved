@@ -2,6 +2,7 @@ import Head from 'next/head';
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { BACKEND_URL } from '../utils/config';
+import useChatbotInfo from '../utils/useChatbotInfo';
 
 export default function Home() {
   // Chatbot state
@@ -10,6 +11,8 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const chatEndRef = useRef(null);
+  const chatSectionRef = useRef(null); // NEW: ref for chat section
+  const info = useChatbotInfo();
 
   // Scroll to bottom on new message
   useEffect(() => {
@@ -87,8 +90,8 @@ export default function Home() {
           <span className="text-brand-tan font-futuristic text-3xl tracking-widest drop-shadow-lg">ChopWise</span>
         </a>
         <nav className="hidden md:flex gap-10 text-brand-tan text-lg font-semibold">
-          <a href="#" className="hover:text-brand-brown transition focus:outline-none focus:text-brand-brown">Chat</a>
-          <a href="#insights" className="hover:text-brand-brown transition focus:outline-none focus:text-brand-brown">Insights</a>
+          <a href="#chat" className="nav-btn hover:text-brand-brown transition focus:outline-none focus:text-brand-brown">Chat</a>
+          <a href="#insights" className="nav-btn hover:text-brand-brown transition focus:outline-none focus:text-brand-brown">Insights</a>
         </nav>
       </header>
 
@@ -114,24 +117,33 @@ export default function Home() {
           >
             Track daily essential food items across Nigeria. Discover the best places and times to buy, get price forecasts, and plan ahead with confidence—so you and your family can eat better, every day.
           </motion.p>
-          <motion.a
-            href="#"
-            whileHover={{ scale: 1.07 }}
+          <motion.button
+            type="button"
+            whileHover={{ scale: 1.09, boxShadow: '0 0 24px 6px #FFD700, 0 0 60px 10px #7C4F2A' }}
             whileTap={{ scale: 0.97 }}
-            className="relative z-10 mt-6 btn-primary text-lg shadow-lg focus:outline-none focus:ring-2 focus:ring-brand-tan animate-bounce"
+            className="relative z-10 mt-6 btn-primary-glow text-lg shadow-xl focus:outline-none focus:ring-4 focus:ring-brand-tan/60 animate-bounce"
+            onClick={() => {
+              if (chatSectionRef.current) chatSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }}
+            aria-label="Scroll to chatbot section"
           >
-            Start Exploring
-          </motion.a>
+            <span className="relative z-20">Start Exploring</span>
+            <span className="absolute inset-0 z-10 rounded-xl pointer-events-none animate-glow-gradient" />
+          </motion.button>
         </section>
 
         {/* Chat Section */}
-        <section id="chat" className="bg-brand-brown text-brand-tan py-20 px-4">
+        <section id="chat" ref={chatSectionRef} className="bg-brand-brown text-brand-tan py-20 px-4">
           <div className="max-w-4xl mx-auto glassmorphism shadow-2xl">
             <h2 className="text-3xl font-futuristic text-brand-tan text-center mb-8 drop-shadow-lg animate-fade-in">Chat with ChopWise</h2>
             <div className="flex flex-col items-center justify-center gap-4 bg-accent-deep rounded-2xl p-8 text-center text-brand-tan/80 shadow-lg border-2 border-brand-tan/30 animate-fade-in-up">
               <span className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-brand-tan/20 border-2 border-brand-tan mb-2 animate-pulse">
                 <img src="/logo.jpg" alt="ChopWise logo" className="h-10 w-10 rounded-full" />
               </span>
+              {/* Data source label - static and prominent */}
+              <div className="w-full text-center mb-2">
+                <span className="inline-block bg-brand-tan/20 text-brand-brown font-bold px-4 py-2 rounded-lg text-sm border border-brand-tan/40 shadow">Data source: Nigerian Food Price Tracking Dataset (NBS)</span>
+              </div>
               <div className="w-full max-w-xl mx-auto flex flex-col gap-2 mb-4">
                 <div className="h-64 overflow-y-auto bg-black/10 rounded-xl p-4 border border-brand-tan/20 shadow-inner" style={{ minHeight: 180 }}>
                   {messages.length === 0 && (
@@ -171,8 +183,32 @@ export default function Home() {
                   </button>
                 </form>
               </div>
-              <span className="text-xs text-brand-tan/60 mt-2">Powered by AI & real market data</span>
-              <span className="text-xs text-brand-tan/60 mt-1 block">Chatbot was trained on daily essential food prices from the Nigeria Bureau of Statistics.</span>
+              {/* Help/Instructions Section */}
+              <div className="w-full max-w-xl mx-auto mt-6 p-4 rounded-xl bg-brand-tan/10 border border-brand-tan/20 text-left text-sm text-brand-tan/90 shadow animate-fade-in-up">
+                <h3 className="font-bold text-brand-tan mb-2">How to use ChopWise</h3>
+                <ul className="list-disc pl-5 mb-2">
+                  <li>Ask about the price of any daily essential food in any Nigerian state. E.g. <span className="italic">Price of maize in Lagos</span></li>
+                  <li>Get price forecasts: <span className="italic">Predict price of beans in Abuja 3 months</span></li>
+                  <li>Find the cheapest states, LGAs, or outlets: <span className="italic">Where is rice cheapest?</span></li>
+                  <li>Type <span className="font-mono">help</span> for more tips.</li>
+                </ul>
+                <div className="mb-2">
+                  <span className="font-bold">Available food items:</span> <span className="italic">{info.foods && info.foods.length > 0 ? info.foods.join(', ') : 'Loading...'}</span>
+                </div>
+                <div className="mb-1">
+                  <span className="font-bold">Data coverage:</span> <span className="italic">{info.date_range && info.date_range.start ? `${info.date_range.start} – ${info.date_range.end}` : 'Loading...'}</span>
+                </div>
+                <div className="mb-2">
+                  <span className="font-bold">You can also ask:</span>
+                  <ul className="list-disc pl-5 mt-1">
+                    <li>"Cheapest LGA for {info.foods[0] || 'beans'} in {info.states[0] || 'Lagos'}"</li>
+                    <li>"Best outlet for {info.foods[1] || 'rice'} in {info.states[1] || 'Abuja'}"</li>
+                    <li>"Trend for {info.foods[2] || 'yam'} in {info.lgas[0] || 'Potiskum'}"</li>
+                    <li>"Price of {info.foods[3] || 'garri'} at {info.outlets[0] || 'Market'} in {info.states[2] || 'Kano'}"</li>
+                  </ul>
+                </div>
+                <div className="text-xs text-brand-tan/70">Powered by AI & real market data. For best results, be specific about food, state, LGA, outlet, and time.</div>
+              </div>
             </div>
           </div>
         </section>

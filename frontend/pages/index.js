@@ -133,9 +133,22 @@ export default function Home() {
         </section>
 
         {/* Chat Section */}
-        <section id="chat" ref={chatSectionRef} className="bg-brand-brown text-brand-tan py-20 px-4">
+        <section id="chat" className="bg-brand-brown text-brand-tan py-20 px-4">
           <div className="max-w-4xl mx-auto glassmorphism shadow-2xl">
             <h2 className="text-3xl font-futuristic text-brand-tan text-center mb-8 drop-shadow-lg animate-fade-in">Chat with ChopWise</h2>
+            {/* Help/Instructions Section */}
+            <div className="mb-6 p-6 rounded-2xl bg-tan/80 border-2 border-brand-brown/30 shadow-lg animate-fade-in-up">
+              <h3 className="text-xl font-bold text-brand-brown mb-2">How to use the chatbot</h3>
+              <ul className="list-disc pl-6 text-brand-brown/90 text-base mb-2">
+                <li>Ask for the price of any food item, e.g. <b>"price of rice in Lagos"</b> or <b>"maize in Kano"</b>.</li>
+                <li>Type a general food name (like <b>"rice"</b> or <b>"maize"</b>) to see all available variants and their prices.</li>
+                <li>Find the <b>cheapest LGA or outlet</b> for any food in any state.</li>
+                <li>Get <b>price trends</b> and <b>forecasts</b> for the future.</li>
+                <li>Ask about <b>outlet types</b> (e.g. market, shop) or <b>LGA</b> for more precise info.</li>
+                <li>Type <b>help</b> at any time for more tips.</li>
+              </ul>
+              <div className="text-sm text-brand-brown/70">Data covers all major states, LGAs, and outlet types in Nigeria. Powered by real market data from the NBS.</div>
+            </div>
             <div className="flex flex-col items-center justify-center gap-4 bg-accent-deep rounded-2xl p-8 text-center text-brand-tan/80 shadow-lg border-2 border-brand-tan/30 animate-fade-in-up">
               <span className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-brand-tan/20 border-2 border-brand-tan mb-2 animate-pulse">
                 <img src="/logo.jpg" alt="ChopWise logo" className="h-10 w-10 rounded-full" />
@@ -182,32 +195,6 @@ export default function Home() {
                     {loading ? '...' : 'Send'}
                   </button>
                 </form>
-              </div>
-              {/* Help/Instructions Section */}
-              <div className="w-full max-w-xl mx-auto mt-6 p-4 rounded-xl bg-brand-tan/10 border border-brand-tan/20 text-left text-sm text-brand-tan/90 shadow animate-fade-in-up">
-                <h3 className="font-bold text-brand-tan mb-2">How to use ChopWise</h3>
-                <ul className="list-disc pl-5 mb-2">
-                  <li>Ask about the price of any daily essential food in any Nigerian state. E.g. <span className="italic">Price of maize in Lagos</span></li>
-                  <li>Get price forecasts: <span className="italic">Predict price of beans in Abuja 3 months</span></li>
-                  <li>Find the cheapest states, LGAs, or outlets: <span className="italic">Where is rice cheapest?</span></li>
-                  <li>Type <span className="font-mono">help</span> for more tips.</li>
-                </ul>
-                <div className="mb-2">
-                  <span className="font-bold">Available food items:</span> <span className="italic">{info.foods && info.foods.length > 0 ? info.foods.join(', ') : 'Loading...'}</span>
-                </div>
-                <div className="mb-1">
-                  <span className="font-bold">Data coverage:</span> <span className="italic">{info.date_range && info.date_range.start ? `${info.date_range.start} – ${info.date_range.end}` : 'Loading...'}</span>
-                </div>
-                <div className="mb-2">
-                  <span className="font-bold">You can also ask:</span>
-                  <ul className="list-disc pl-5 mt-1">
-                    <li>"Cheapest LGA for {info.foods[0] || 'beans'} in {info.states[0] || 'Lagos'}"</li>
-                    <li>"Best outlet for {info.foods[1] || 'rice'} in {info.states[1] || 'Abuja'}"</li>
-                    <li>"Trend for {info.foods[2] || 'yam'} in {info.lgas[0] || 'Potiskum'}"</li>
-                    <li>"Price of {info.foods[3] || 'garri'} at {info.outlets[0] || 'Market'} in {info.states[2] || 'Kano'}"</li>
-                  </ul>
-                </div>
-                <div className="text-xs text-brand-tan/70">Powered by AI & real market data. For best results, be specific about food, state, LGA, outlet, and time.</div>
               </div>
             </div>
           </div>

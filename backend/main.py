@@ -117,6 +117,46 @@ def chat(req: Request):
                 sug_names = ', '.join([s.title() for s in suggestions])
                 return {"reply": f"I couldn't find that state. Did you mean: {sug_names}?"}
 
+        # Find all foods matching a generic query (e.g. 'rice' matches 'Imported Rice', 'Local Rice')
+        matching_foods = [f for f in foods if f.lower() in text or text in f.lower()]
+        if not matching_foods and not found_food:
+            matches = get_close_matches(text, [f.lower() for f in foods], n=3, cutoff=0.4)
+            if matches:
+                sug_names = ', '.join([f.title() for f in matches])
+                return {"reply": f"I couldn't find that food item. Did you mean: {sug_names}?"}
+            return {"reply": "Sorry, I couldn't recognize the food item. Please try again with a different name."}
+        if found_food and found_food not in matching_foods:
+            matching_foods.append(found_food)
+        if not matching_foods:
+            matching_foods = [found_food] if found_food else []
+
+        # If multiple foods match, answer for all variants
+        if len(matching_foods) > 1:
+            reply = f"I found multiple food items matching your query:\n"
+            for food in matching_foods:
+                df_item = df_raw[df_raw["Food Item"] == food]
+                if found_state:
+                    df_item = df_item[df_item["State"] == found_state]
+                if df_item.empty:
+                    reply += f"- {food}: No data available.\n"
+                    continue
+                latest_date = df_item["Date"].max()
+                latest_price = df_item[df_item["Date"] == latest_date]["UPRICE"].mean()
+                one_month_ago = latest_date - pd.Timedelta(days=30)
+                recent_1m = df_item[df_item["Date"] >= one_month_ago]["UPRICE"]
+                avg_1m = recent_1m.mean() if not recent_1m.empty else latest_price
+                pct_1m = (latest_price - avg_1m) / avg_1m * 100 if avg_1m else 0
+                if pct_1m > 5:
+                    trend = f"Prices are rising (up {pct_1m:.1f}% in the last month)."
+                elif pct_1m < -5:
+                    trend = f"Prices are falling (down {abs(pct_1m):.1f}% in the last month)."
+                else:
+                    trend = "Prices are stable over the last month."
+                loc = f" in {found_state}" if found_state else ""
+                reply += f"- {food}{loc}: ₦{latest_price:,.0f} ({trend})\n"
+            reply += "\n(Data source: Nigerian Food Price Tracking Dataset, NBS)"
+            return {"reply": reply}
+
         # Top-3 cheapest LGAs/outlets for a food item
         if any(word in text for word in ["cheapest", "best place", "best lga", "best outlet", "where is", "lowest price", "where to buy"]):
             df_item = df_raw[df_raw["Food Item"] == found_food]

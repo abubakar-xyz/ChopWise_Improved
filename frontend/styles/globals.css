@@ -136,9 +136,43 @@ body {
   transition: background 0.2s, color 0.2s, box-shadow 0.2s;
   font-weight: 600;
   outline: none;
+  color: #3B2F23;
+  text-shadow: 0 1px 8px #fff, 0 0px 2px #FFD70099;
 }
 .nav-btn:focus, .nav-btn:hover {
   background: linear-gradient(90deg, #FFD70055 0%, #7C4F2A33 100%);
   color: #FFD700;
   box-shadow: 0 0 8px 2px #FFD70044;
+}
+
+/* Enhance color contrast and readability */
+.glassmorphism, .glass, .bg-brand-brown, .bg-brown, .bg-earth, .bg-tan {
+  text-shadow: 0 2px 8px rgba(0,0,0,0.18), 0 1px 0 #fff;
+}
+
+.text-brand-tan, .text-tan, .text-earth, .text-brown, .text-brand-brown {
+  text-shadow: 0 2px 8px rgba(0,0,0,0.18), 0 1px 0 #fff;
+}
+
+.btn-primary, .btn-primary-glow {
+  color: #181818 !important;
+  text-shadow: 0 1px 8px #fff, 0 0px 2px #FFD70099;
+}
+
+/* For dark backgrounds, make text pop */
+.bg-brand-brown, .bg-brown, .bg-accent-deep {
+  color: #FFD700 !important;
+  text-shadow: 0 2px 8px #000, 0 1px 0 #fff;
+}
+
+/* For chatbot bubbles */
+.user-message {
+  color: #3B2F23;
+  background: #FFFBEA;
+  text-shadow: 0 1px 4px #fff;
+}
+.bot-message {
+  color: #FFD700;
+  background: #4B3A2F;
+  text-shadow: 0 2px 8px #000, 0 1px 0 #fff;
 }

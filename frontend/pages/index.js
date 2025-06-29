@@ -140,7 +140,7 @@ export default function Home() {
                 <li className="flex items-start gap-3"><span className="icon-tip">❓</span><span>Type <b>help</b> at any time for more tips.</span></li>
               </ul>
             </div>
-            <div className="rounded-3xl bg-[#6B4F2B]/95 shadow-xl p-6 flex flex-col gap-4 border border-[#E8A46B]/20 text-[#FFF7ED]">
+            <div className="rounded-3xl bg-[#6B4F2B]/95 shadow-xl p-6 flex flex-col gap-4 border border-[#E8A46L]/20 text-[#FFF7ED]">
               <div className="flex items-center gap-3 mb-2">
                 <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-[#E8A46B] text-[#6B4F2B] text-2xl shadow-lg">
                   <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm0 0v10l6 4" stroke="#6B4F2B" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -216,13 +216,34 @@ export default function Home() {
         {/* Insights Section */}
         <section id="insights" ref={insightsSectionRef} className="py-16 px-4 bg-gradient-to-br from-[#FFF7ED] via-[#F6E7D7] to-[#E8A46B]/20 flex flex-col items-center">
           <div className="max-w-6xl w-full mx-auto">
-            <div className="rounded-3xl bg-white/90 shadow-2xl p-8 border border-[#E8A46B]/30">
+            <div className="rounded-3xl bg-white/90 shadow-2xl p-8 border border-[#E8A46L]/30">
               <h2 className="font-lora text-3xl font-bold text-[#6B4F2B] mb-6 text-center">Insights &amp; Trends</h2>
-              <div id="viz" className="w-full aspect-[4/3] min-h-[400px] rounded-2xl overflow-hidden border-2 border-[#E8A46B]/30 bg-black/10 flex items-center justify-center"></div>
+              <div id="viz" className="w-full aspect-[4/3] min-h-[400px] rounded-2xl overflow-hidden border-2 border-[#E8A46L]/30 bg-black/10 flex items-center justify-center"></div>
             </div>
           </div>
         </section>
       </main>
+
+      {/* Creative Footer */}
+      <footer className="w-full bg-gradient-to-br from-[#6B4F2B] via-[#E8A46B]/80 to-[#FFF7ED] py-12 px-4 flex flex-col items-center justify-center border-t border-[#E8A46B]/30 mt-10 shadow-inner relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none z-0">
+          <svg width="100%" height="100" viewBox="0 0 1440 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-24 md:h-32 opacity-30">
+            <path d="M0,80 Q360,0 720,80 T1440,80 V100 H0 Z" fill="#FFF7ED" />
+          </svg>
+        </div>
+        <div className="flex flex-col items-center gap-4 z-10 relative">
+          <span className="font-lora text-2xl md:text-3xl text-[#FFF7ED] font-bold drop-shadow-lg text-center tracking-tight flex items-center gap-2">
+            <svg width="32" height="32" fill="none" viewBox="0 0 24 24" className="inline-block text-[#E8A46B] animate-pulse"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41 0.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="currentColor"/></svg>
+            Designed & built with love by <span className="text-[#E8A46B] font-extrabold font-orbitron ml-1">Abubakar Abdulfatah</span>
+          </span>
+          <span className="text-[#FFF7ED]/80 text-lg font-inter italic mt-1 text-center tracking-wide">
+            as part of the <span className="font-bold text-[#E8A46B]">3MTT Monthly Knowledge Showcase</span>
+          </span>
+          <span className="text-[#FFF7ED]/60 text-base font-inter mt-2 text-center max-w-xl">
+            Wouldn't have been possible in the short time I had without help from <span className="text-[#E8A46B] font-semibold">GitHub Copilot</span> <span className="align-middle">🤖</span>
+          </span>
+        </div>
+      </footer>
     </>
   );
 }

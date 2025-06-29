@@ -1,5 +1,5 @@
 import Head from 'next/head';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { BACKEND_URL } from '../utils/config';
 import useChatbotInfo from '../utils/useChatbotInfo';
@@ -12,8 +12,8 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const chatEndRef = useRef(null);
-  const chatSectionRef = useRef(null); // NEW: ref for chat section
-  const info = useChatbotInfo();
+  const chatSectionRef = useRef(null);
+  const insightsSectionRef = useRef(null);
 
   // Scroll to bottom on new message
   useEffect(() => {
@@ -54,9 +54,18 @@ export default function Home() {
     }
   }, []);
 
+  // Scroll to section with offset for fixed header
+  const scrollToSection = (ref) => {
+    if (ref.current) {
+      const y = ref.current.getBoundingClientRect().top + window.scrollY - 80; // 80px header offset
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    }
+  };
+
   // Chatbot submit handler
   async function handleChatSubmit(e) {
     e.preventDefault();
+    e.stopPropagation(); // Prevent any bubbling that could cause scroll
     setError("");
     if (!input.trim()) return;
     setMessages(msgs => [...msgs, { role: 'user', text: input }]);
@@ -75,6 +84,12 @@ export default function Home() {
     } finally {
       setLoading(false);
       setInput("");
+      // Keep focus in the input after sending
+      setTimeout(() => {
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+        const inputEl = document.querySelector('input[type="text"]');
+        if (inputEl) inputEl.focus();
+      }, 100);
     }
   }
 
@@ -84,15 +99,14 @@ export default function Home() {
         <title>ChopWise — AI for Nigerian Food Prices</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
-
       <header className="fixed w-full top-0 bg-gradient-to-br from-brand-brown via-[#4E342E] to-brand-tan/80 backdrop-blur-lg z-50 flex justify-between items-center px-6 md:px-16 py-4 border-b border-brand-tan shadow-2xl animate-gradient-x">
         <a href="#" className="flex items-center gap-4 focus:outline-none focus:ring-2 focus:ring-brand-tan">
           <img src="/logo.jpg" className="h-14 w-14 rounded-full border-4 border-brand-tan shadow-xl animate-pulse" alt="ChopWise logo" />
           <span className="text-brand-tan font-futuristic text-3xl tracking-widest drop-shadow-lg">ChopWise</span>
         </a>
         <nav className="hidden md:flex gap-10 text-brand-tan text-lg font-semibold">
-          <a href="#chat" className="nav-btn hover:text-brand-brown transition focus:outline-none focus:text-brand-brown">Chat</a>
-          <a href="#insights" className="nav-btn hover:text-brand-brown transition focus:outline-none focus:text-brand-brown">Insights</a>
+          <button className="nav-btn hover:text-brand-brown transition focus:outline-none focus:text-brand-brown" onClick={() => scrollToSection(chatSectionRef)} aria-label="Go to Chatbot">Chat</button>
+          <button className="nav-btn hover:text-brand-brown transition focus:outline-none focus:text-brand-brown" onClick={() => scrollToSection(insightsSectionRef)} aria-label="Go to Insights">Insights</button>
         </nav>
       </header>
 
@@ -101,55 +115,53 @@ export default function Home() {
         <section className="hero bg-gradient-to-br from-[#F6E7D7] via-[#E8A46B] to-[#6B4F2B] relative overflow-hidden">
           <div className="container z-10 relative">
             <h1 className="heading-1 mb-4 font-lora text-4xl md:text-5xl lg:text-6xl text-[#6B4F2B] drop-shadow-xl">Know what to buy. Know when to buy. Eat better every day.</h1>
-            <p className="text-lg md:text-2xl font-inter text-[#4E342E] mb-8 max-w-2xl mx-auto font-medium drop-shadow-sm">Get real-time food prices across Nigeria. Plan smarter, shop with confidence, and stretch your budget without sacrificing nutrition.</p>
-            <a href="#chat" className="btn text-xl mt-6 font-inter shadow-xl" style={{ minWidth: 220 }} onClick={e => { e.preventDefault(); const chatSection = document.getElementById('chat'); if (chatSection) chatSection.scrollIntoView({ behavior: 'smooth' }); }}>Find Your Best Price</a>
+            <p className="text-lg md:text-2xl font-inter text-[#4E342E] mb-8 max-w-2xl mx-auto font-medium drop-shadow-sm">Real-time food prices across Nigeria—so you plan smarter and save without skimping on nutrition.</p>
+            <button className="btn text-xl mt-6 font-inter shadow-xl" style={{ minWidth: 220 }} onClick={() => scrollToSection(chatSectionRef)} aria-label="Open chat">Find Your Best Price</button>
           </div>
           <div className="absolute inset-0 pointer-events-none z-0 bg-gradient-to-tr from-[#E8A46B]/30 via-[#F6E7D7]/10 to-[#6B4F2B]/20" />
         </section>
 
-        {/* Help/Instructions Section */}
-        <section className="py-16 px-4 bg-gradient-to-br from-[#FFF7ED] via-[#F6E7D7] to-[#E8A46B]/20 flex flex-col items-center">
-          <div className="max-w-5xl w-full mx-auto grid grid-cols-1 md:grid-cols-2 gap-10">
-            {/* Quick Start Card */}
-            <div className="rounded-3xl bg-white/90 shadow-2xl p-8 flex flex-col gap-6 border border-[#E8A46B]/30">
-              <div className="flex items-center gap-4 mb-2">
-                <span className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[#E8A46B] text-[#6B4F2B] text-3xl shadow-lg">
-                  <svg width="32" height="32" fill="none" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        {/* Quick Start / Help Section */}
+        <section className="py-12 px-4 bg-gradient-to-br from-[#FFF7ED] via-[#F6E7D7] to-[#E8A46B]/20 flex flex-col items-center">
+          <div className="max-w-3xl w-full mx-auto grid grid-cols-1 gap-8 md:grid-cols-2 md:gap-10">
+            <div className="rounded-3xl bg-white/95 shadow-xl p-6 flex flex-col gap-4 border border-[#E8A46B]/20">
+              <div className="flex items-center gap-3 mb-2">
+                <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-[#E8A46B] text-[#6B4F2B] text-2xl shadow-lg">
+                  <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 </span>
-                <span className="font-lora font-bold text-2xl text-[#6B4F2B] tracking-tight">Quick Start</span>
+                <span className="font-lora font-bold text-xl text-[#6B4F2B] tracking-tight">Quick Start</span>
               </div>
-              <ul className="space-y-5 text-[#4E342E] text-lg font-inter">
-                <li className="flex items-start gap-3"><span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#E8A46B]/30 text-[#6B4F2B] text-xl"><svg width="24" height="24" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="#E8A46B" strokeWidth="2.5"/><path d="M8 12l2 2 4-4" stroke="#6B4F2B" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg></span>Ask me anything about food prices—like:<ul className="ml-4 mt-1 space-y-1 text-base font-normal"><li>“What’s the price of <span className='font-semibold'>rice in Lagos</span>?”</li><li>“Where is <span className='font-semibold'>maize cheapest in Kano</span>?”</li><li>“How much will <span className='font-semibold'>beans cost next week in Enugu</span>?”</li></ul></li>
-                <li className="flex items-center gap-3"><span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#E8A46B]/30 text-[#6B4F2B] text-xl"><svg width="24" height="24" fill="none" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="8" stroke="#E8A46B" strokeWidth="2.5"/><path d="M8 12h8" stroke="#6B4F2B" strokeWidth="2.5" strokeLinecap="round"/></svg></span>Type a general food name (like <span className="font-semibold">“rice”</span> or <span className="font-semibold">“maize”</span>) to see all available variants and their prices.</li>
-                <li className="flex items-center gap-3"><span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#E8A46B]/30 text-[#6B4F2B] text-xl"><svg width="24" height="24" fill="none" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm0 0v10l6 4" stroke="#E8A46B" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg></span>Find the <span className="font-semibold">cheapest LGA or outlet</span> for any food in any state.</li>
-                <li className="flex items-center gap-3"><span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#E8A46B]/30 text-[#6B4F2B] text-xl"><svg width="24" height="24" fill="none" viewBox="0 0 24 24"><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2M7 9V7a5 5 0 0 1 10 0v2" stroke="#E8A46B" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg></span>Get <span className="font-semibold">price trends and forecasts</span> for the future.</li>
-                <li className="flex items-center gap-3"><span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#E8A46B]/30 text-[#6B4F2B] text-xl"><svg width="24" height="24" fill="none" viewBox="0 0 24 24"><path d="M3 12h18M12 3v18" stroke="#E8A46B" strokeWidth="2.5" strokeLinecap="round"/></svg></span>Ask about <span className="font-semibold">outlet types</span> (e.g. market, shop) or <span className="font-semibold">LGA</span> for more precise info.</li>
-                <li className="flex items-center gap-3"><span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#E8A46B]/30 text-[#6B4F2B] text-xl"><svg width="24" height="24" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="#E8A46B" strokeWidth="2.5"/><path d="M12 8v4l3 3" stroke="#6B4F2B" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg></span>Type <span className="font-semibold">help</span> at any time for more tips.</li>
+              <ul className="how-to-list space-y-4 text-[#4E342E] text-base font-inter">
+                <li><span className="icon-tip">💬</span>Ask about food prices: <span className="block ml-8 mt-1 text-sm font-normal">“What’s the price of <b>rice in Lagos</b>?”</span></li>
+                <li><span className="icon-tip">📊</span>See all variants: <span className="block ml-8 mt-1 text-sm font-normal">Type <b>“rice”</b> or <b>“maize”</b> to see all available types and prices.</span></li>
+                <li><span className="icon-tip">📍</span>Find the cheapest LGA or outlet: <span className="block ml-8 mt-1 text-sm font-normal">“Where is <b>maize</b> cheapest in Kano?”</span></li>
+                <li><span className="icon-tip">📈</span>Get price trends & forecasts: <span className="block ml-8 mt-1 text-sm font-normal">“How much will <b>beans</b> cost next week in Enugu?”</span></li>
+                <li><span className="icon-tip">🛒</span>Ask about outlet types or LGA: <span className="block ml-8 mt-1 text-sm font-normal">“Show <b>market</b> prices for <b>yam</b> in Ibadan.”</span></li>
+                <li><span className="icon-tip">❓</span>Type <b>help</b> at any time for more tips.</li>
               </ul>
             </div>
-            {/* Coverage & Data Card */}
-            <div className="rounded-3xl bg-[#6B4F2B]/95 shadow-2xl p-8 flex flex-col gap-6 border border-[#E8A46B]/20 text-[#FFF7ED]">
-              <div className="flex items-center gap-4 mb-2">
-                <span className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[#E8A46B] text-[#6B4F2B] text-3xl shadow-lg">
-                  <svg width="32" height="32" fill="none" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm0 0v10l6 4" stroke="#6B4F2B" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <div className="rounded-3xl bg-[#6B4F2B]/95 shadow-xl p-6 flex flex-col gap-4 border border-[#E8A46B]/20 text-[#FFF7ED]">
+              <div className="flex items-center gap-3 mb-2">
+                <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-[#E8A46B] text-[#6B4F2B] text-2xl shadow-lg">
+                  <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm0 0v10l6 4" stroke="#6B4F2B" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 </span>
-                <span className="font-lora font-bold text-2xl text-[#FFF7ED] tracking-tight">Coverage & Data</span>
+                <span className="font-lora font-bold text-xl text-[#FFF7ED] tracking-tight">Coverage & Data</span>
               </div>
-              <ul className="space-y-5 text-[#FFF7ED] text-lg font-inter">
-                <li className="flex items-center gap-3"><span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#FFF7ED]/20 text-[#E8A46B] text-xl"><svg width="24" height="24" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="#E8A46B" strokeWidth="2.5"/><path d="M8 12l2 2 4-4" stroke="#E8A46B" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg></span>Data covers all major <span className="font-semibold">states, LGAs, and outlet types</span> in Nigeria.</li>
-                <li className="flex items-center gap-3"><span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#FFF7ED]/20 text-[#E8A46B] text-xl"><svg width="24" height="24" fill="none" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="8" stroke="#E8A46B" strokeWidth="2.5"/><path d="M8 12h8" stroke="#E8A46B" strokeWidth="2.5" strokeLinecap="round"/></svg></span>Powered by real market data from the <span className="font-semibold">NBS</span>.</li>
-                <li className="flex items-center gap-3"><span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#FFF7ED]/20 text-[#E8A46B] text-xl"><svg width="24" height="24" fill="none" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm0 0v10l6 4" stroke="#E8A46B" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg></span>Latest data update: <span className="font-semibold">June 2025</span></li>
+              <ul className="space-y-4 text-[#FFF7ED] text-base font-inter">
+                <li><span className="icon-tip">🌍</span>Data covers all major <b>states, LGAs, and outlet types</b> in Nigeria.</li>
+                <li><span className="icon-tip">📑</span>Powered by real market data from the <b>NBS</b>.</li>
+                <li><span className="icon-tip">🗓️</span>Latest data update: <b>June 2025</b></li>
               </ul>
               <div className="flex items-center gap-3 mt-4">
-                <img src="/logo.jpg" alt="ChopWise logo" className="h-12 w-12 rounded-full border-2 border-[#E8A46B] shadow" />
-                <span className="font-lora text-2xl font-bold tracking-widest text-[#FFF7ED]">ChopWise</span>
+                <img src="/logo.jpg" alt="ChopWise logo" className="h-10 w-10 rounded-full border-2 border-[#E8A46B] shadow" />
+                <span className="font-lora text-xl font-bold tracking-widest text-[#FFF7ED]">ChopWise</span>
               </div>
             </div>
           </div>
         </section>
 
         {/* Chatbot Section */}
-        <section id="chat" className="py-16 px-4 bg-gradient-to-br from-[#FFF7ED] via-[#F6E7D7] to-[#E8A46B]/20 flex flex-col items-center" ref={chatSectionRef}>
+        <section id="chat" ref={chatSectionRef} className="py-16 px-4 bg-gradient-to-br from-[#FFF7ED] via-[#F6E7D7] to-[#E8A46B]/20 flex flex-col items-center">
           <div className="max-w-3xl w-full mx-auto bg-white/90 rounded-3xl shadow-2xl p-8 border border-[#E8A46B]/30">
             <div className="flex flex-col h-full">
               {/* Messages List */}
@@ -197,36 +209,58 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Insights Section (Tableau Embed) */}
-        <section id="insights" className="py-16 px-4 bg-gradient-to-br from-[#FFF7ED] via-[#F6E7D7] to-[#E8A46B]/20 flex flex-col items-center">
+        {/* Insights Section */}
+        <section id="insights" ref={insightsSectionRef} className="py-16 px-4 bg-gradient-to-br from-[#FFF7ED] via-[#F6E7D7] to-[#E8A46B]/20 flex flex-col items-center">
           <div className="max-w-6xl w-full mx-auto">
             <div className="rounded-3xl bg-white/90 shadow-2xl p-8 border border-[#E8A46B]/30">
-              <h2 className="text-3xl md:text-4xl font-lora text-[#6B4F2B] tracking-tight mb-6 text-center">Insights & Trends</h2>
-              <div id="viz" className="w-full h-96 md:h-[600px] lg:h-[700px] xl:h-[800px] 2xl:h-[900px] mx-auto mb-8" />
-              <div className="flex flex-col md:flex-row gap-4">
-                <a href="#chat" className="btn text-lg font-semibold shadow-md bg-[#6B4F2B] text-[#FFF7ED] rounded-3xl px-6 py-3 hover:bg-[#E8A46B] hover:text-[#6B4F2B] transition flex items-center justify-center gap-2">
-                  <FaUtensils className="text-xl" />
-                  Get Food Prices Now
-                </a>
-                <a href="https://public.tableau.com/views/ChopWiseInsights/Dashboard1?:language=en-US&:display_count=n&:origin=viz_share_link" target="_blank" rel="noopener noreferrer" className="btn text-lg font-semibold shadow-md bg-[#E8A46B] text-[#6B4F2B] rounded-3xl px-6 py-3 hover:bg-[#6B4F2B] hover:text-[#E8A46B] transition flex items-center justify-center gap-2">
-                  <FaInfoCircle className="text-xl" />
-                  View Detailed Insights
-                </a>
+              <h2 className="text-3xl md:text-4xl font-lora text-[#6B4F2B] mb-6 text-center">Insights & Trends</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Insight Cards (Placeholder) */}
+                <div className="bg-[#6B4F2B] text-[#FFF7ED] rounded-3xl p-6 shadow-md flex flex-col gap-4">
+                  <div className="text-4xl">
+                    <FaUtensils className="w-full h-full" />
+                  </div>
+                  <h3 className="text-xl font-semibold">Food Price Trends</h3>
+                  <p className="text-base">Explore how food prices have changed over time in your region.</p>
+                  <button className="mt-auto bg-[#E8A46B] text-[#6B4F2B] rounded-full px-4 py-2 font-semibold shadow-md hover:bg-[#6B4F2B] hover:text-[#E8A46B] transition">
+                    View Trends
+                  </button>
+                </div>
+                <div className="bg-[#6B4F2B] text-[#FFF7ED] rounded-3xl p-6 shadow-md flex flex-col gap-4">
+                  <div className="text-4xl">
+                    <FaMapMarkerAlt className="w-full h-full" />
+                  </div>
+                  <h3 className="text-xl font-semibold">Regional Price Differences</h3>
+                  <p className="text-base">See how food prices vary across different states and LGAs.</p>
+                  <button className="mt-auto bg-[#E8A46B] text-[#6B4F2B] rounded-full px-4 py-2 font-semibold shadow-md hover:bg-[#6B4F2B] hover:text-[#E8A46B] transition">
+                    Explore Map
+                  </button>
+                </div>
+                <div className="bg-[#6B4F2B] text-[#FFF7ED] rounded-3xl p-6 shadow-md flex flex-col gap-4">
+                  <div className="text-4xl">
+                    <FaRobot className="w-full h-full" />
+                  </div>
+                  <h3 className="text-xl font-semibold">AI Price Predictions</h3>
+                  <p className="text-base">Get insights into future price trends based on AI analysis.</p>
+                  <button className="mt-auto bg-[#E8A46B] text-[#6B4F2B] rounded-full px-4 py-2 font-semibold shadow-md hover:bg-[#6B4F2B] hover:text-[#E8A46B] transition">
+                    See Predictions
+                  </button>
+                </div>
+                <div className="bg-[#6B4F2B] text-[#FFF7ED] rounded-3xl p-6 shadow-md flex flex-col gap-4">
+                  <div className="text-4xl">
+                    <FaInfoCircle className="w-full h-full" />
+                  </div>
+                  <h3 className="text-xl font-semibold">Market Insights</h3>
+                  <p className="text-base">Understand market dynamics and how they affect food prices.</p>
+                  <button className="mt-auto bg-[#E8A46B] text-[#6B4F2B] rounded-full px-4 py-2 font-semibold shadow-md hover:bg-[#6B4F2B] hover:text-[#E8A46B] transition">
+                    Learn More
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </section>
       </main>
-
-      <footer className="py-8 px-4 bg-[#6B4F2B] text-[#FFF7ED] text-center">
-        <div className="container mx-auto">
-          <p className="text-sm md:text-base">&copy; {new Date().getFullYear()} ChopWise. All rights reserved.</p>
-          <div className="flex justify-center gap-4 mt-2">
-            <a href="#" className="text-[#E8A46B] hover:text-[#FFF7ED] transition">Privacy Policy</a>
-            <a href="#" className="text-[#E8A46B] hover:text-[#FFF7ED] transition">Terms of Service</a>
-          </div>
-        </div>
-      </footer>
     </>
   );
 }

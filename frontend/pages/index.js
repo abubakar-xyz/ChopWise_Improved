@@ -237,19 +237,59 @@ export default function Home() {
             <path d="M0,80 Q360,0 720,80 T1440,80 V100 H0 Z" fill="#FFF7ED" />
           </svg>
         </div>
-        <div className="flex flex-col items-center gap-4 z-10 relative">
-          <span className="font-lora text-2xl md:text-3xl text-[#FFF7ED] font-bold drop-shadow-lg text-center tracking-tight flex items-center gap-2">
-            <svg width="32" height="32" fill="none" viewBox="0 0 24 24" className="inline-block text-[#E8A46B] animate-pulse"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41 0.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="currentColor"/></svg>
-            Designed & built with love by <span className="text-[#E8A46B] font-extrabold font-orbitron ml-1">Abubakar Abdulfatah</span>
-          </span>
-          <span className="text-[#FFF7ED]/80 text-lg font-inter italic mt-1 text-center tracking-wide">
-            as part of the <span className="font-bold text-[#E8A46B]">3MTT Monthly Knowledge Showcase</span>
-          </span>
-          <span className="text-[#FFF7ED]/60 text-base font-inter mt-2 text-center max-w-xl">
-            Wouldn't have been possible in the short time I had without help from <span className="text-[#E8A46B] font-semibold">GitHub Copilot</span> <span className="align-middle">🤖</span>
-          </span>
+        <div className="flex flex-col items-center gap-4 z-10 relative w-full max-w-3xl">
+          <div className="flex flex-col md:flex-row items-center justify-center gap-3 w-full animate-fade-in-up">
+            <span className="inline-flex items-center gap-2 text-2xl md:text-3xl font-lora font-bold text-[#FFF7ED] drop-shadow-lg tracking-tight">
+              <span role="img" aria-label="Heart" className="animate-bounce text-[#E8A46B]">❤️</span>
+              Crafted with passion by
+              <a href="https://www.linkedin.com/in/abubakar-abdulfatah/" target="_blank" rel="noopener noreferrer" className="text-[#E8A46B] font-extrabold font-orbitron ml-1 hover:underline hover:text-[#FFF7ED] transition" aria-label="Abubakar Abdulfatah LinkedIn">Abubakar Abdulfatah</a>
+            </span>
+            <span className="hidden md:inline text-[#E8A46B] text-2xl">·</span>
+            <span className="text-lg font-inter text-[#FFF7ED]/80 italic text-center tracking-wide">
+              as part of the <span className="font-bold text-[#E8A46B]">3MTT Monthly Knowledge Showcase</span>
+            </span>
+          </div>
+          <div className="flex flex-col md:flex-row items-center justify-center gap-3 w-full animate-fade-in-up">
+            <span className="inline-flex items-center gap-2 text-base font-inter text-[#FFF7ED]/80">
+              <span role="img" aria-label="Copilot" className="animate-spin text-[#E8A46B]">🤖</span>
+              Made possible in record time with the assistance of
+              <a href="https://github.com/abubakar-xyz" target="_blank" rel="noopener noreferrer" className="text-[#E8A46B] font-semibold hover:underline hover:text-[#FFF7ED] transition" aria-label="Abubakar Abdulfatah GitHub">GitHub Copilot</a>
+            </span>
+          </div>
+          {/* Rotating quote/message */}
+          <RotatingFooterMessage />
         </div>
       </footer>
+
+      {/* Rotating Footer Message Component */}
+      <style jsx>{`
+        @keyframes fadeInUp {
+          0% { opacity: 0; transform: translateY(20px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in-up { animation: fadeInUp 1s cubic-bezier(.4,0,.2,1) both; }
+      `}</style>
     </>
+  );
+}
+
+// RotatingFooterMessage component
+function RotatingFooterMessage() {
+  const messages = [
+    "Keep learning, keep building.",
+    "Great things are built with great tools.",
+    "Empowering Nigeria, one meal at a time.",
+    "Open source makes the world go round.",
+    "Eat well, live well, code well!"
+  ];
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => setIdx(i => (i + 1) % messages.length), 5000);
+    return () => clearInterval(interval);
+  }, []);
+  return (
+    <span className="mt-4 text-[#FFF7ED]/70 text-base font-inter text-center w-full block min-h-[1.5em] transition-all" aria-live="polite">
+      {messages[idx]}
+    </span>
   );
 }

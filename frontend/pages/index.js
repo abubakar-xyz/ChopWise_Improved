@@ -122,7 +122,7 @@ export default function Home() {
         </section>
 
         {/* Quick Start / Help Section */}
-        <section className="py-12 px-4 bg-gradient-to-br from-[#FFF7ED] via-[#F6E7D7] to-[#E8A46B]/20 flex flex-col items-center">
+        <section className="py-12 px-4 bg-gradient-to-br from-[#FFF7ED] via-[#F6E7D7] to-[#E8A46B]/20 flex flex-col items-center" id="quickstart">
           <div className="max-w-3xl w-full mx-auto grid grid-cols-1 gap-8 md:grid-cols-2 md:gap-10">
             <div className="rounded-3xl bg-white/95 shadow-xl p-6 flex flex-col gap-4 border border-[#E8A46B]/20">
               <div className="flex items-center gap-3 mb-2">
@@ -132,12 +132,12 @@ export default function Home() {
                 <span className="font-lora font-bold text-xl text-[#6B4F2B] tracking-tight">Quick Start</span>
               </div>
               <ul className="how-to-list space-y-4 text-[#4E342E] text-base font-inter">
-                <li><span className="icon-tip">💬</span>Ask about food prices: <span className="block ml-8 mt-1 text-sm font-normal">“What’s the price of <b>rice in Lagos</b>?”</span></li>
-                <li><span className="icon-tip">📊</span>See all variants: <span className="block ml-8 mt-1 text-sm font-normal">Type <b>“rice”</b> or <b>“maize”</b> to see all available types and prices.</span></li>
-                <li><span className="icon-tip">📍</span>Find the cheapest LGA or outlet: <span className="block ml-8 mt-1 text-sm font-normal">“Where is <b>maize</b> cheapest in Kano?”</span></li>
-                <li><span className="icon-tip">📈</span>Get price trends & forecasts: <span className="block ml-8 mt-1 text-sm font-normal">“How much will <b>beans</b> cost next week in Enugu?”</span></li>
-                <li><span className="icon-tip">🛒</span>Ask about outlet types or LGA: <span className="block ml-8 mt-1 text-sm font-normal">“Show <b>market</b> prices for <b>yam</b> in Ibadan.”</span></li>
-                <li><span className="icon-tip">❓</span>Type <b>help</b> at any time for more tips.</li>
+                <li className="flex items-start gap-3"><span className="icon-tip">💬</span><span>Ask about food prices:<br className="md:hidden" /><span className="block ml-7 mt-1 text-sm font-normal">“What’s the price of <b>rice in Lagos</b>?”</span></span></li>
+                <li className="flex items-start gap-3"><span className="icon-tip">📊</span><span>See all variants:<br className="md:hidden" /><span className="block ml-7 mt-1 text-sm font-normal">Type <b>“rice”</b> or <b>“maize”</b> to see all available types and prices.</span></span></li>
+                <li className="flex items-start gap-3"><span className="icon-tip">📍</span><span>Find the cheapest LGA or outlet:<br className="md:hidden" /><span className="block ml-7 mt-1 text-sm font-normal">“Where is <b>maize</b> cheapest in Kano?”</span></span></li>
+                <li className="flex items-start gap-3"><span className="icon-tip">📈</span><span>Get price trends & forecasts:<br className="md:hidden" /><span className="block ml-7 mt-1 text-sm font-normal">“How much will <b>beans</b> cost next week in Enugu?”</span></span></li>
+                <li className="flex items-start gap-3"><span className="icon-tip">🛒</span><span>Ask about outlet types or LGA:<br className="md:hidden" /><span className="block ml-7 mt-1 text-sm font-normal">“Show <b>market</b> prices for <b>yam</b> in Ibadan.”</span></span></li>
+                <li className="flex items-start gap-3"><span className="icon-tip">❓</span><span>Type <b>help</b> at any time for more tips.</span></li>
               </ul>
             </div>
             <div className="rounded-3xl bg-[#6B4F2B]/95 shadow-xl p-6 flex flex-col gap-4 border border-[#E8A46B]/20 text-[#FFF7ED]">
@@ -148,9 +148,9 @@ export default function Home() {
                 <span className="font-lora font-bold text-xl text-[#FFF7ED] tracking-tight">Coverage & Data</span>
               </div>
               <ul className="space-y-4 text-[#FFF7ED] text-base font-inter">
-                <li><span className="icon-tip">🌍</span>Data covers all major <b>states, LGAs, and outlet types</b> in Nigeria.</li>
-                <li><span className="icon-tip">📑</span>Powered by real market data from the <b>NBS</b>.</li>
-                <li><span className="icon-tip">🗓️</span>Latest data update: <b>June 2025</b></li>
+                <li className="flex items-start gap-3"><span className="icon-tip">🌍</span><span>Data covers all major <b>states, LGAs, and outlet types</b> in Nigeria.</span></li>
+                <li className="flex items-start gap-3"><span className="icon-tip">📑</span><span>Powered by real market data from the <b>NBS</b>.</span></li>
+                <li className="flex items-start gap-3"><span className="icon-tip">🗓️</span><span>Latest data update: <b>June 2025</b></span></li>
               </ul>
               <div className="flex items-center gap-3 mt-4">
                 <img src="/logo.jpg" alt="ChopWise logo" className="h-10 w-10 rounded-full border-2 border-[#E8A46B] shadow" />
@@ -164,6 +164,10 @@ export default function Home() {
         <section id="chat" ref={chatSectionRef} className="py-16 px-4 bg-gradient-to-br from-[#FFF7ED] via-[#F6E7D7] to-[#E8A46B]/20 flex flex-col items-center">
           <div className="max-w-3xl w-full mx-auto bg-white/90 rounded-3xl shadow-2xl p-8 border border-[#E8A46B]/30">
             <div className="flex flex-col h-full">
+              <div className="mb-6 text-center text-[#6B4F2B] font-lora text-lg md:text-xl bg-[#FFF7ED]/80 rounded-2xl px-4 py-3 shadow-sm">
+                <FaInfoCircle className="inline mr-2 text-[#E8A46B] text-xl align-text-bottom" />
+                <span>For best results, check the <a href="#quickstart" className="underline hover:text-[#E8A46B] transition">Quick Start</a> section above before chatting!</span>
+              </div>
               {/* Messages List */}
               <div className="flex-1 overflow-y-auto pr-3 mb-4">
                 {messages.length === 0 && (
@@ -213,50 +217,8 @@ export default function Home() {
         <section id="insights" ref={insightsSectionRef} className="py-16 px-4 bg-gradient-to-br from-[#FFF7ED] via-[#F6E7D7] to-[#E8A46B]/20 flex flex-col items-center">
           <div className="max-w-6xl w-full mx-auto">
             <div className="rounded-3xl bg-white/90 shadow-2xl p-8 border border-[#E8A46B]/30">
-              <h2 className="text-3xl md:text-4xl font-lora text-[#6B4F2B] mb-6 text-center">Insights & Trends</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Insight Cards (Placeholder) */}
-                <div className="bg-[#6B4F2B] text-[#FFF7ED] rounded-3xl p-6 shadow-md flex flex-col gap-4">
-                  <div className="text-4xl">
-                    <FaUtensils className="w-full h-full" />
-                  </div>
-                  <h3 className="text-xl font-semibold">Food Price Trends</h3>
-                  <p className="text-base">Explore how food prices have changed over time in your region.</p>
-                  <button className="mt-auto bg-[#E8A46B] text-[#6B4F2B] rounded-full px-4 py-2 font-semibold shadow-md hover:bg-[#6B4F2B] hover:text-[#E8A46B] transition">
-                    View Trends
-                  </button>
-                </div>
-                <div className="bg-[#6B4F2B] text-[#FFF7ED] rounded-3xl p-6 shadow-md flex flex-col gap-4">
-                  <div className="text-4xl">
-                    <FaMapMarkerAlt className="w-full h-full" />
-                  </div>
-                  <h3 className="text-xl font-semibold">Regional Price Differences</h3>
-                  <p className="text-base">See how food prices vary across different states and LGAs.</p>
-                  <button className="mt-auto bg-[#E8A46B] text-[#6B4F2B] rounded-full px-4 py-2 font-semibold shadow-md hover:bg-[#6B4F2B] hover:text-[#E8A46B] transition">
-                    Explore Map
-                  </button>
-                </div>
-                <div className="bg-[#6B4F2B] text-[#FFF7ED] rounded-3xl p-6 shadow-md flex flex-col gap-4">
-                  <div className="text-4xl">
-                    <FaRobot className="w-full h-full" />
-                  </div>
-                  <h3 className="text-xl font-semibold">AI Price Predictions</h3>
-                  <p className="text-base">Get insights into future price trends based on AI analysis.</p>
-                  <button className="mt-auto bg-[#E8A46B] text-[#6B4F2B] rounded-full px-4 py-2 font-semibold shadow-md hover:bg-[#6B4F2B] hover:text-[#E8A46B] transition">
-                    See Predictions
-                  </button>
-                </div>
-                <div className="bg-[#6B4F2B] text-[#FFF7ED] rounded-3xl p-6 shadow-md flex flex-col gap-4">
-                  <div className="text-4xl">
-                    <FaInfoCircle className="w-full h-full" />
-                  </div>
-                  <h3 className="text-xl font-semibold">Market Insights</h3>
-                  <p className="text-base">Understand market dynamics and how they affect food prices.</p>
-                  <button className="mt-auto bg-[#E8A46B] text-[#6B4F2B] rounded-full px-4 py-2 font-semibold shadow-md hover:bg-[#6B4F2B] hover:text-[#E8A46B] transition">
-                    Learn More
-                  </button>
-                </div>
-              </div>
+              <h2 className="font-lora text-3xl font-bold text-[#6B4F2B] mb-6 text-center">Insights &amp; Trends</h2>
+              <div id="viz" className="w-full aspect-[4/3] min-h-[400px] rounded-2xl overflow-hidden border-2 border-[#E8A46B]/30 bg-black/10 flex items-center justify-center"></div>
             </div>
           </div>
         </section>

@@ -117,40 +117,40 @@ def chat(req: Request):
                 sug_names = ', '.join([s.title() for s in suggestions])
                 return {"reply": f"I couldn't find that state. Did you mean: {sug_names}?"}
 
-        # Find all foods matching a generic query (e.g. 'rice' matches 'Imported Rice', 'Local Rice')
-        matching_foods = [f for f in foods if f.lower() in text or text in f.lower()]
-        # If user input matches a generic term or a variant, always show all variants
-        if (not found_food and matching_foods) or (found_food and len(matching_foods) > 1):
-            reply = f"Here are the prices for all types of {text.strip()} in your selected location:\n"
-            found_any = False
-            for food in matching_foods:
-                df_item = df_raw[df_raw["Food Item"] == food]
-                if found_state:
-                    df_item = df_item[df_item["State"] == found_state]
-                if found_lga:
-                    df_item = df_item[df_item["LGA"] == found_lga]
-                if found_outlet:
-                    df_item = df_item[df_item["Outlet Type"] == found_outlet]
-                if df_item.empty:
-                    reply += f"- {food}: No data available.\n"
-                    continue
-                found_any = True
-                latest_date = df_item["Date"].max()
-                latest_price = df_item[df_item["Date"] == latest_date]["UPRICE"].mean()
-                reply += f"- {food}: ₦{latest_price:,.0f} (latest: {latest_date.date()})\n"
-            if found_any:
-                reply += "\nTip: You can specify a more precise food type, state, LGA, or outlet for even more accurate info!"
-            else:
-                reply += "No price data found for these variants. Try another food or location."
-            return {"reply": reply}
-        if found_food and found_food not in matching_foods:
-            matching_foods.append(found_food)
-        if not matching_foods:
-            matching_foods = [found_food] if found_food else []
+        # --- Advanced intent detection and robust food matching ---
+        # Lowercase and remove punctuation for better matching
+        import re as _re
+        clean_text = _re.sub(r'[^\w\s]', '', text)
+        words = set(clean_text.split())
 
-        # If multiple foods match, answer for all variants (fallback)
-        if len(matching_foods) > 1:
-            reply = "I found multiple food items matching your query:\n"
+        # Find all foods that are a substring or token match
+        matching_foods = [f for f in foods if any(w in f.lower() or f.lower() in w for w in words)]
+        # If still nothing, try partial match
+        if not matching_foods:
+            matching_foods = [f for f in foods if any(w in f.lower() or f.lower() in w for w in text.split())]
+        # If still nothing, try fuzzy match
+        if not matching_foods:
+            matches = get_close_matches(text, [f.lower() for f in foods], n=3, cutoff=0.4)
+            matching_foods = [f for f in foods if f.lower() in matches]
+        # If still nothing, fallback to found_food
+        if not matching_foods and found_food:
+            matching_foods = [found_food]
+        if not matching_foods:
+            suggestions = get_close_matches(text, [f.lower() for f in foods], n=3, cutoff=0.4)
+            if suggestions:
+                sug_names = ', '.join([f.title() for f in suggestions])
+                return {"reply": f"I couldn't find that food item. Did you mean: {sug_names}?"}
+            return {"reply": "Sorry, I couldn't recognize the food item. Please try again with a different name."}
+
+        # --- Intent detection ---
+        is_cheapest = any(word in text for word in ["cheapest", "best place", "best lga", "best outlet", "lowest price", "where is", "where can"])
+        is_trend = any(word in text for word in ["trend", "change", "history", "past", "recent"])
+        is_forecast = any(word in text for word in ["predict", "forecast", "future price", "price in", "next week", "next month", "after"])
+        is_price = any(word in text for word in ["price", "cost", "how much", "current"])
+
+        # --- Handle multi-food queries ---
+        if len(matching_foods) > 1 and (is_price or is_cheapest or is_trend or is_forecast):
+            reply = "Here are the results for all matching food items:\n"
             for food in matching_foods:
                 df_item = df_raw[df_raw["Food Item"] == food]
                 if found_state:
@@ -168,9 +168,9 @@ def chat(req: Request):
             reply += "\nTip: You can specify a state, LGA, or outlet for more precise info!"
             return {"reply": reply}
 
-        # Top-3 cheapest LGAs/outlets for a food item
-        if any(word in text for word in ["cheapest", "best place", "best lga", "best outlet", "lowest price"]):
-            food = matching_foods[0] if matching_foods else found_food
+        # --- Cheapest LGA/Outlet intent ---
+        if is_cheapest:
+            food = matching_foods[0]
             df_item = df_raw[df_raw["Food Item"] == food]
             if found_state:
                 df_item = df_item[df_item["State"] == found_state]
@@ -191,9 +191,9 @@ def chat(req: Request):
             reply += "\nWant more details? Ask about a specific LGA or outlet!"
             return {"reply": reply}
 
-        # Model-based price forecasting for all matching foods
+        # --- Forecast intent ---
         forecast_match = re.search(r'(predict|forecast|future price|price in) (.+?) (in|after) (\d+) (month|months|weeks|days)', text)
-        if forecast_match and matching_foods:
+        if is_forecast and forecast_match and matching_foods:
             num = int(forecast_match.group(4))
             unit = forecast_match.group(5)
             if unit.startswith('month'):
@@ -219,8 +219,43 @@ def chat(req: Request):
             reply += "\nCurious about trends? Ask for a trend summary!"
             return {"reply": reply}
 
-        # Filter dataset for single food
-        food = matching_foods[0] if matching_foods else found_food
+        # --- Trend intent ---
+        if is_trend:
+            food = matching_foods[0]
+            df_item = df_raw[df_raw["Food Item"] == food]
+            if found_state:
+                df_item = df_item[df_item["State"] == found_state]
+            if found_lga:
+                df_item = df_item[df_item["LGA"] == found_lga]
+            if found_outlet:
+                df_item = df_item[df_item["Outlet Type"] == found_outlet]
+            if df_item.empty:
+                return {"reply": "Sorry, I couldn't find enough data for that query."}
+            latest_date  = df_item["Date"].max()
+            latest_price = df_item[df_item["Date"] == latest_date]["UPRICE"].mean()
+            one_month_ago   = latest_date - pd.Timedelta(days=30)
+            three_months_ago= latest_date - pd.Timedelta(days=90)
+            recent_1m       = df_item[df_item["Date"] >= one_month_ago]["UPRICE"]
+            recent_3m       = df_item[df_item["Date"] >= three_months_ago]["UPRICE"]
+            avg_1m = recent_1m.mean() if not recent_1m.empty else latest_price
+            avg_3m = recent_3m.mean() if not recent_3m.empty else latest_price
+            pct_1m = (latest_price - avg_1m) / avg_1m * 100 if avg_1m else 0
+            pct_3m = (latest_price - avg_3m) / avg_3m * 100 if avg_3m else 0
+            if pct_1m > 5:
+                trend = f"Prices are rising (up {pct_1m:.1f}% in the last month)."
+            elif pct_1m < -5:
+                trend = f"Prices are falling (down {abs(pct_1m):.1f}% in the last month)."
+            else:
+                trend = "Prices are stable over the last month."
+            loc = f" in {found_state}" if found_state else ""
+            lga = f", {found_lga}" if found_lga else ""
+            outlet = f" at {found_outlet}" if found_outlet else ""
+            reply = f"Trend for {food}{loc}{lga}{outlet}: {trend}\n"
+            reply += "\nTip: You can ask for the cheapest LGA or outlet, or request a forecast!"
+            return {"reply": reply}
+
+        # --- Price intent (default) ---
+        food = matching_foods[0]
         df_item = df_raw[df_raw["Food Item"] == food]
         if found_state:
             df_item = df_item[df_item["State"] == found_state]
@@ -230,34 +265,9 @@ def chat(req: Request):
             df_item = df_item[df_item["Outlet Type"] == found_outlet]
         if df_item.empty:
             return {"reply": "Sorry, I couldn't find enough data for that query."}
-
-        # Latest price
         latest_date  = df_item["Date"].max()
         latest_price = df_item[df_item["Date"] == latest_date]["UPRICE"].mean()
-
-        # Trend windows
-        one_month_ago   = latest_date - pd.Timedelta(days=30)
-        three_months_ago= latest_date - pd.Timedelta(days=90)
-        recent_1m       = df_item[df_item["Date"] >= one_month_ago]["UPRICE"]
-        recent_3m       = df_item[df_item["Date"] >= three_months_ago]["UPRICE"]
-
-        avg_1m = recent_1m.mean() if not recent_1m.empty else latest_price
-        avg_3m = recent_3m.mean() if not recent_3m.empty else latest_price
-        pct_1m = (latest_price - avg_1m) / avg_1m * 100 if avg_1m else 0
-        pct_3m = (latest_price - avg_3m) / avg_3m * 100 if avg_3m else 0
-
-        # Trend summary
-        if pct_1m > 5:
-            trend = f"Prices are rising (up {pct_1m:.1f}% in the last month)."
-        elif pct_1m < -5:
-            trend = f"Prices are falling (down {abs(pct_1m):.1f}% in the last month)."
-        else:
-            trend = "Prices are stable over the last month."
-
-        loc = f" in {found_state}" if found_state else ""
-        lga = f", {found_lga}" if found_lga else ""
-        outlet = f" at {found_outlet}" if found_outlet else ""
-        reply = f"Latest price of {food}{loc}{lga}{outlet}: ₦{latest_price:,.0f}\n{trend}\n"
+        reply = f"Latest price of {food}{' in ' + found_state if found_state else ''}: ₦{latest_price:,.0f}\n"
         reply += "\nTip: You can ask for the cheapest LGA or outlet, or request a forecast!"
         return {"reply": reply}
     except Exception as e:

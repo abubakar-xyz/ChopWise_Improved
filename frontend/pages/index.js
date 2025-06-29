@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { BACKEND_URL } from '../utils/config';
 import useChatbotInfo from '../utils/useChatbotInfo';
+import { FaUtensils, FaMapMarkerAlt, FaRobot, FaInfoCircle } from 'react-icons/fa';
 
 export default function Home() {
   // Chatbot state
@@ -132,10 +133,35 @@ export default function Home() {
           </motion.button>
         </section>
 
+        {/* Help/Instructions Section */}
+        <section className="max-w-4xl mx-auto soft-card mb-12 mt-[-3rem] z-20 relative shadow-xl border-2 border-yellow-400/30">
+          <h2 className="text-3xl md:text-4xl font-futuristic text-brand-brown mb-4 flex items-center gap-3"><FaInfoCircle className="text-yellow-400 text-2xl" /> How to Use ChopWise</h2>
+          <div className="grid md:grid-cols-2 gap-8">
+            <div>
+              <h3 className="text-xl font-bold text-brand-brown mb-2 flex items-center gap-2"><FaRobot className="text-brand-green" /> Example Prompts</h3>
+              <ul className="space-y-2 text-lg text-brand-dark/90">
+                <li className="flex items-center gap-2"><FaUtensils className="text-yellow-400" /> "Price of <b>maize white</b> in Lagos"</li>
+                <li className="flex items-center gap-2"><FaMapMarkerAlt className="text-brand-green" /> "Cheapest LGA for <b>beans</b> in Kano"</li>
+                <li className="flex items-center gap-2"><FaRobot className="text-brand-brown" /> "Forecast price of <b>rice</b> in Abuja 2 months"</li>
+                <li className="flex items-center gap-2"><FaUtensils className="text-yellow-400" /> "Best outlet for <b>yam</b> in Ibadan"</li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-brand-brown mb-2 flex items-center gap-2"><FaUtensils className="text-yellow-400" /> Available Foods</h3>
+              <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                {info.foods && info.foods.length > 0 ? info.foods.map((food, i) => (
+                  <span key={i} className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-yellow-100 text-brand-brown text-sm font-semibold border border-yellow-400/40 shadow-sm"><FaUtensils className="text-brand-green" /> {food}</span>
+                )) : <span className="text-brand-brown/60">Loading…</span>}
+              </div>
+              <div className="mt-2 text-xs text-brand-brown/60">Data covers {info.date_range?.start} to {info.date_range?.end}</div>
+            </div>
+          </div>
+        </section>
+
         {/* Chat Section */}
-        <section id="chat" className="bg-brand-brown text-brand-tan py-20 px-4">
+        <section id="chat" ref={chatSectionRef} className="bg-brand-brown text-brand-tan py-20 px-4">
           <div className="max-w-4xl mx-auto glassmorphism shadow-2xl">
-            <h2 className="text-3xl font-futuristic text-brand-tan text-center mb-8 drop-shadow-lg animate-fade-in">Chat with ChopWise</h2>
+            <h2 className="text-3xl md:text-4xl font-futuristic text-yellow-400 text-center mb-8 drop-shadow-lg animate-fade-in flex items-center gap-2 justify-center"><FaRobot className="text-yellow-400" /> Chat with ChopWise</h2>
             {/* Help/Instructions Section */}
             <div className="mb-6 p-6 rounded-2xl bg-tan/80 border-2 border-brand-brown/30 shadow-lg animate-fade-in-up">
               <h3 className="text-xl font-bold text-brand-brown mb-2">How to use the chatbot</h3>
@@ -209,9 +235,9 @@ export default function Home() {
         </section>
       </main>
 
-      <footer className="text-center py-8 bg-brand-brown text-brand-tan/70 border-t border-brand-tan mt-10 shadow-inner">
+      <footer className="text-center py-8 bg-brand-brown text-yellow-400/80 border-t border-yellow-400 mt-10 shadow-inner font-futuristic text-lg">
         <div className="flex flex-col md:flex-row items-center justify-center gap-2">
-          <span className="font-futuristic text-brand-tan">© {new Date().getFullYear()} ChopWise</span>
+          <span className="font-futuristic text-yellow-400 text-xl">© {new Date().getFullYear()} ChopWise</span>
           <span className="hidden md:inline">·</span>
           <span>Plan ahead, eat well, and save more every day</span>
         </div>

@@ -98,62 +98,49 @@ export default function Home() {
 
       <main className="pt-32">
         {/* Hero Section */}
-        <section className="min-h-[80vh] flex flex-col justify-center items-center text-center bg-gradient-to-br from-brand-brown via-[#6D4C41] to-[#4E342E] text-white px-4 relative overflow-hidden">
-          <div className="absolute inset-0 pointer-events-none z-0">
-            <div className="w-full h-full bg-gradient-to-tr from-brand-tan/10 via-transparent to-brand-tan/10 animate-pulse" />
+        <section className="hero">
+          <div className="container">
+            <h1 className="heading-1 mb-4">Know what to buy. Know when to buy. Eat better every day.</h1>
+            <p className="text-lg text-brand-brown/90 mb-8 max-w-2xl mx-auto">Get real-time food prices across Nigeria. Plan smarter, shop with confidence, and stretch your budget without sacrificing nutrition.</p>
+            <a href="#chat" className="btn text-xl mt-6" style={{ minWidth: 220 }} onClick={e => { e.preventDefault(); const chatSection = document.getElementById('chat'); if (chatSection) chatSection.scrollIntoView({ behavior: 'smooth' }); }}>Find Your Best Price</a>
           </div>
-          <motion.h1
-            initial={{ opacity: 0, y: -30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1 }}
-            className="relative z-10 text-5xl md:text-7xl font-extrabold font-futuristic text-brand-tan drop-shadow-2xl mb-4"
-          >
-            Plan Ahead, Eat Well
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="relative z-10 mt-4 max-w-2xl text-xl md:text-2xl text-brand-tan/90 mb-8"
-          >
-            Track daily essential food items across Nigeria. Discover the best places and times to buy, get price forecasts, and plan ahead with confidence—so you and your family can eat better, every day.
-          </motion.p>
-          <motion.button
-            type="button"
-            whileHover={{ scale: 1.09, boxShadow: '0 0 24px 6px #FFD700, 0 0 60px 10px #7C4F2A' }}
-            whileTap={{ scale: 0.97 }}
-            className="relative z-10 mt-6 btn-primary-glow text-lg shadow-xl focus:outline-none focus:ring-4 focus:ring-brand-tan/60 animate-bounce"
-            onClick={() => {
-              if (chatSectionRef.current) chatSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }}
-            aria-label="Scroll to chatbot section"
-          >
-            <span className="relative z-20">Start Exploring</span>
-            <span className="absolute inset-0 z-10 rounded-xl pointer-events-none animate-glow-gradient" />
-          </motion.button>
         </section>
 
         {/* Help/Instructions Section */}
-        <section className="max-w-4xl mx-auto soft-card mb-12 mt-[-3rem] z-20 relative shadow-xl border-2 border-yellow-400/30">
-          <h2 className="text-3xl md:text-4xl font-futuristic text-brand-brown mb-4 flex items-center gap-3"><FaInfoCircle className="text-yellow-400 text-2xl" /> How to Use ChopWise</h2>
-          <div className="grid md:grid-cols-2 gap-8">
-            <div>
-              <h3 className="text-xl font-bold text-brand-brown mb-2 flex items-center gap-2"><FaRobot className="text-brand-green" /> Example Prompts</h3>
-              <ul className="space-y-2 text-lg text-brand-dark/90">
-                <li className="flex items-center gap-2"><FaUtensils className="text-yellow-400" /> "Price of <b>maize white</b> in Lagos"</li>
-                <li className="flex items-center gap-2"><FaMapMarkerAlt className="text-brand-green" /> "Cheapest LGA for <b>beans</b> in Kano"</li>
-                <li className="flex items-center gap-2"><FaRobot className="text-brand-brown" /> "Forecast price of <b>rice</b> in Abuja 2 months"</li>
-                <li className="flex items-center gap-2"><FaUtensils className="text-yellow-400" /> "Best outlet for <b>yam</b> in Ibadan"</li>
+        <section className="py-12 px-4 bg-gradient-to-br from-brand-tan/80 to-brand-brown/10 flex flex-col items-center">
+          <div className="max-w-3xl w-full mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="rounded-3xl bg-white/80 shadow-xl p-6 flex flex-col gap-4 items-start border border-brand-brown/10">
+              <div className="flex items-center gap-3 mb-2">
+                <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-brand-brown/90 text-brand-tan text-2xl shadow-lg">
+                  <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </span>
+                <span className="font-bold text-lg text-brand-brown">Quick Start</span>
+              </div>
+              <ul className="list-none space-y-2 text-brand-brown/90 text-base">
+                <li className="flex items-center gap-2"><span className="inline-block w-6 h-6 text-brand-green"><svg width="24" height="24" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="#7C4F2A" strokeWidth="2"/><path d="M8 12l2 2 4-4" stroke="#7C4F2A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></span>Ask for the price of any food item, e.g. <span className="font-semibold">"price of rice in Lagos"</span> or <span className="font-semibold">"maize in Kano"</span>.</li>
+                <li className="flex items-center gap-2"><span className="inline-block w-6 h-6 text-brand-green"><svg width="24" height="24" fill="none" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="8" stroke="#7C4F2A" strokeWidth="2"/><path d="M8 12h8" stroke="#7C4F2A" strokeWidth="2" strokeLinecap="round"/></svg></span>Type a general food name (like <span className="font-semibold">"rice"</span> or <span className="font-semibold">"maize"</span>) to see all available variants and their prices.</li>
+                <li className="flex items-center gap-2"><span className="inline-block w-6 h-6 text-brand-green"><svg width="24" height="24" fill="none" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm0 0v10l6 4" stroke="#7C4F2A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></span>Find the <span className="font-semibold">cheapest LGA or outlet</span> for any food in any state.</li>
+                <li className="flex items-center gap-2"><span className="inline-block w-6 h-6 text-brand-green"><svg width="24" height="24" fill="none" viewBox="0 0 24 24"><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2M7 9V7a5 5 0 0 1 10 0v2" stroke="#7C4F2A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></span>Get <span className="font-semibold">price trends and forecasts</span> for the future.</li>
+                <li className="flex items-center gap-2"><span className="inline-block w-6 h-6 text-brand-green"><svg width="24" height="24" fill="none" viewBox="0 0 24 24"><path d="M3 12h18M12 3v18" stroke="#7C4F2A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></span>Ask about <span className="font-semibold">outlet types</span> (e.g. market, shop) or <span className="font-semibold">LGA</span> for more precise info.</li>
+                <li className="flex items-center gap-2"><span className="inline-block w-6 h-6 text-brand-green"><svg width="24" height="24" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="#7C4F2A" strokeWidth="2"/><path d="M12 8v4l3 3" stroke="#7C4F2A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></span>Type <span className="font-semibold">help</span> at any time for more tips.</li>
               </ul>
             </div>
-            <div>
-              <h3 className="text-xl font-bold text-brand-brown mb-2 flex items-center gap-2"><FaUtensils className="text-yellow-400" /> Available Foods</h3>
-              <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-                {info.foods && info.foods.length > 0 ? info.foods.map((food, i) => (
-                  <span key={i} className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-yellow-100 text-brand-brown text-sm font-semibold border border-yellow-400/40 shadow-sm"><FaUtensils className="text-brand-green" /> {food}</span>
-                )) : <span className="text-brand-brown/60">Loading…</span>}
+            <div className="rounded-3xl bg-brand-brown/90 shadow-xl p-6 flex flex-col gap-4 items-start border border-tan/10 text-brand-tan">
+              <div className="flex items-center gap-3 mb-2">
+                <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-brand-tan/90 text-brand-brown text-2xl shadow-lg">
+                  <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm0 0v10l6 4" stroke="#7C4F2A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </span>
+                <span className="font-bold text-lg text-brand-tan">Coverage & Data</span>
               </div>
-              <div className="mt-2 text-xs text-brand-brown/60">Data covers {info.date_range?.start} to {info.date_range?.end}</div>
+              <ul className="list-none space-y-2 text-brand-tan/90 text-base">
+                <li className="flex items-center gap-2"><span className="inline-block w-6 h-6 text-brand-tan"><svg width="24" height="24" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="#E9D8C3" strokeWidth="2"/><path d="M8 12l2 2 4-4" stroke="#E9D8C3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></span>Data covers all major <span className="font-semibold">states, LGAs, and outlet types</span> in Nigeria.</li>
+                <li className="flex items-center gap-2"><span className="inline-block w-6 h-6 text-brand-tan"><svg width="24" height="24" fill="none" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="8" stroke="#E9D8C3" strokeWidth="2"/><path d="M8 12h8" stroke="#E9D8C3" strokeWidth="2" strokeLinecap="round"/></svg></span>Powered by real market data from the <span className="font-semibold">NBS</span>.</li>
+                <li className="flex items-center gap-2"><span className="inline-block w-6 h-6 text-brand-tan"><svg width="24" height="24" fill="none" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm0 0v10l6 4" stroke="#E9D8C3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></span>Latest data update: <span className="font-semibold">June 2025</span></li>
+              </ul>
+              <div className="flex items-center gap-2 mt-4">
+                <img src="/logo.jpg" alt="ChopWise logo" className="h-10 w-10 rounded-full border-2 border-brand-tan shadow" />
+                <span className="font-futuristic text-xl font-bold tracking-widest text-brand-tan">ChopWise</span>
+              </div>
             </div>
           </div>
         </section>
@@ -161,20 +148,7 @@ export default function Home() {
         {/* Chat Section */}
         <section id="chat" ref={chatSectionRef} className="bg-brand-brown text-brand-tan py-20 px-4">
           <div className="max-w-4xl mx-auto glassmorphism shadow-2xl">
-            <h2 className="text-3xl md:text-4xl font-futuristic text-yellow-400 text-center mb-8 drop-shadow-lg animate-fade-in flex items-center gap-2 justify-center"><FaRobot className="text-yellow-400" /> Chat with ChopWise</h2>
-            {/* Help/Instructions Section */}
-            <div className="mb-6 p-6 rounded-2xl bg-tan/80 border-2 border-brand-brown/30 shadow-lg animate-fade-in-up">
-              <h3 className="text-xl font-bold text-brand-brown mb-2">How to use the chatbot</h3>
-              <ul className="list-disc pl-6 text-brand-brown/90 text-base mb-2">
-                <li>Ask for the price of any food item, e.g. <b>"price of rice in Lagos"</b> or <b>"maize in Kano"</b>.</li>
-                <li>Type a general food name (like <b>"rice"</b> or <b>"maize"</b>) to see all available variants and their prices.</li>
-                <li>Find the <b>cheapest LGA or outlet</b> for any food in any state.</li>
-                <li>Get <b>price trends</b> and <b>forecasts</b> for the future.</li>
-                <li>Ask about <b>outlet types</b> (e.g. market, shop) or <b>LGA</b> for more precise info.</li>
-                <li>Type <b>help</b> at any time for more tips.</li>
-              </ul>
-              <div className="text-sm text-brand-brown/70">Data covers all major states, LGAs, and outlet types in Nigeria. Powered by real market data from the NBS.</div>
-            </div>
+            <h2 className="heading-2 text-center mb-8 drop-shadow-lg animate-fade-in">Chat with ChopWise</h2>
             <div className="flex flex-col items-center justify-center gap-4 bg-accent-deep rounded-2xl p-8 text-center text-brand-tan/80 shadow-lg border-2 border-brand-tan/30 animate-fade-in-up">
               <span className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-brand-tan/20 border-2 border-brand-tan mb-2 animate-pulse">
                 <img src="/logo.jpg" alt="ChopWise logo" className="h-10 w-10 rounded-full" />
@@ -186,7 +160,14 @@ export default function Home() {
               <div className="w-full max-w-xl mx-auto flex flex-col gap-2 mb-4">
                 <div className="h-64 overflow-y-auto bg-black/10 rounded-xl p-4 border border-brand-tan/20 shadow-inner" style={{ minHeight: 180 }}>
                   {messages.length === 0 && (
-                    <div className="text-brand-tan/60 text-center">Ask about daily essential food prices, trends, or where and when to buy. E.g. <span className="italic">Where can I get the best deal on beans in Abuja this week?</span></div>
+                    <div className="text-brand-tan/60 text-center">
+                      Ask me anything about food prices—like:
+                      <ul className="how-to-list mt-2">
+                        <li>• What’s the price of rice in Lagos?</li>
+                        <li>• Where is maize cheapest in Kano?</li>
+                        <li>• How much will beans cost next week in Enugu?</li>
+                      </ul>
+                    </div>
                   )}
                   {messages.map((msg, i) => (
                     <div key={i} className={`my-2 flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -235,11 +216,11 @@ export default function Home() {
         </section>
       </main>
 
-      <footer className="text-center py-8 bg-brand-brown text-yellow-400/80 border-t border-yellow-400 mt-10 shadow-inner font-futuristic text-lg">
+      <footer className="text-center py-8 bg-brand-brown text-brand-tan/70 border-t border-brand-tan mt-10 shadow-inner">
         <div className="flex flex-col md:flex-row items-center justify-center gap-2">
-          <span className="font-futuristic text-yellow-400 text-xl">© {new Date().getFullYear()} ChopWise</span>
+          <span className="font-futuristic text-brand-tan">© {new Date().getFullYear()} ChopWise</span>
           <span className="hidden md:inline">·</span>
-          <span>Plan ahead, eat well, and save more every day</span>
+          <span>Because good food shouldn’t cost a fortune.</span>
         </div>
       </footer>
     </>

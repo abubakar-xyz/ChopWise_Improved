@@ -132,89 +132,52 @@ def chat(req: Request):
 
         # If multiple foods match, answer for all variants
         if len(matching_foods) > 1:
-            reply = f"I found multiple food items matching your query:\n"
+            reply = "I found multiple food items matching your query:\n"
             for food in matching_foods:
                 df_item = df_raw[df_raw["Food Item"] == food]
                 if found_state:
                     df_item = df_item[df_item["State"] == found_state]
+                if found_lga:
+                    df_item = df_item[df_item["LGA"] == found_lga]
+                if found_outlet:
+                    df_item = df_item[df_item["Outlet Type"] == found_outlet]
                 if df_item.empty:
                     reply += f"- {food}: No data available.\n"
                     continue
                 latest_date = df_item["Date"].max()
                 latest_price = df_item[df_item["Date"] == latest_date]["UPRICE"].mean()
-                one_month_ago = latest_date - pd.Timedelta(days=30)
-                recent_1m = df_item[df_item["Date"] >= one_month_ago]["UPRICE"]
-                avg_1m = recent_1m.mean() if not recent_1m.empty else latest_price
-                pct_1m = (latest_price - avg_1m) / avg_1m * 100 if avg_1m else 0
-                if pct_1m > 5:
-                    trend = f"Prices are rising (up {pct_1m:.1f}% in the last month)."
-                elif pct_1m < -5:
-                    trend = f"Prices are falling (down {abs(pct_1m):.1f}% in the last month)."
-                else:
-                    trend = "Prices are stable over the last month."
-                loc = f" in {found_state}" if found_state else ""
-                reply += f"- {food}{loc}: ₦{latest_price:,.0f} ({trend})\n"
-            reply += "\n(Data source: Nigerian Food Price Tracking Dataset, NBS)"
+                reply += f"- {food}: ₦{latest_price:,.0f} (latest: {latest_date.date()})\n"
+            reply += "\nTip: You can specify a state, LGA, or outlet for more precise info!"
             return {"reply": reply}
 
         # Top-3 cheapest LGAs/outlets for a food item
-        if any(word in text for word in ["cheapest", "best place", "best lga", "best outlet", "where is", "lowest price", "where to buy"]):
-            df_item = df_raw[df_raw["Food Item"] == found_food]
+        if any(word in text for word in ["cheapest", "best place", "best lga", "best outlet", "lowest price"]):
+            food = matching_foods[0] if matching_foods else found_food
+            df_item = df_raw[df_raw["Food Item"] == food]
             if found_state:
                 df_item = df_item[df_item["State"] == found_state]
             # Top LGAs
             lga_prices = df_item.groupby("LGA")["UPRICE"].mean().sort_values().head(3)
-            # Top Outlets
             outlet_prices = df_item.groupby("Outlet Type")["UPRICE"].mean().sort_values().head(3)
-            reply = f"Top 3 cheapest LGAs for {found_food}{' in ' + found_state if found_state else ''}:\n"
+            reply = f"Top 3 cheapest LGAs for {food}"
+            if found_state:
+                reply += f" in {found_state}"
+            reply += ":\n"
             for i, (lga, price) in enumerate(lga_prices.items(), 1):
                 reply += f"{i}. {lga}: ₦{price:,.0f}\n"
-            reply += "\nTop 3 cheapest outlet types:\n"
+            reply += f"\nTop 3 cheapest outlet types for {food}"
+            if found_state:
+                reply += f" in {found_state}"
+            reply += ":\n"
             for i, (outlet, price) in enumerate(outlet_prices.items(), 1):
                 reply += f"{i}. {outlet}: ₦{price:,.0f}\n"
-            reply += "\n(Data source: Nigerian Food Price Tracking Dataset, NBS)"
+            reply += "\nWant more details? Ask about a specific LGA or outlet!"
             return {"reply": reply}
 
-        # Top-1 cheapest LGA and outlet for a food item in a state
-        if found_food and found_state and ("cheapest" in text or "best" in text or "where" in text):
-            df_item = df_raw[(df_raw["Food Item"] == found_food) & (df_raw["State"] == found_state)]
-            lga_prices = df_item.groupby("LGA")["UPRICE"].mean().sort_values()
-            outlet_prices = df_item.groupby("Outlet Type")["UPRICE"].mean().sort_values()
-            reply = f"In {found_state}, the cheapest LGA for {found_food} is: {lga_prices.index[0]} (₦{lga_prices.iloc[0]:,.0f})\n"
-            reply += f"The cheapest outlet type is: {outlet_prices.index[0]} (₦{outlet_prices.iloc[0]:,.0f})\n"
-            reply += "\n(Data source: Nigerian Food Price Tracking Dataset, NBS)"
-            return {"reply": reply}
-
-        # LGA/outlet-specific queries
-        if found_lga or found_outlet:
-            df_item = df_raw[df_raw["Food Item"] == found_food]
-            if found_state:
-                df_item = df_item[df_item["State"] == found_state]
-            if found_lga:
-                df_item = df_item[df_item["LGA"] == found_lga]
-            if found_outlet:
-                df_item = df_item[df_item["Outlet Type"] == found_outlet]
-            if df_item.empty:
-                return {"reply": "Sorry, I couldn't find enough data for that query."}
-            latest_date  = df_item["Date"].max()
-            latest_price = df_item[df_item["Date"] == latest_date]["UPRICE"].mean()
-            one_month_ago   = latest_date - pd.Timedelta(days=30)
-            recent_1m       = df_item[df_item["Date"] >= one_month_ago]["UPRICE"]
-            avg_1m = recent_1m.mean() if not recent_1m.empty else latest_price
-            pct_1m = (latest_price - avg_1m) / avg_1m * 100 if avg_1m else 0
-            if pct_1m > 5:
-                trend = f"Prices are rising (up {pct_1m:.1f}% in the last month)."
-            elif pct_1m < -5:
-                trend = f"Prices are falling (down {abs(pct_1m):.1f}% in the last month)."
-            else:
-                trend = "Prices are stable over the last month."
-            loc = f" in {found_lga or ''}{' at ' + found_outlet if found_outlet else ''}{' in ' + found_state if found_state else ''}"
-            reply = f"Latest price of {found_food}{loc}: ₦{latest_price:,.0f}\n{trend}\n\n(Data source: Nigerian Food Price Tracking Dataset, NBS)"
-            return {"reply": reply}
-
-        # Model-based price forecasting
+        # Model-based price forecasting for all matching foods
+        import regex as re
         forecast_match = re.search(r'(predict|forecast|future price|price in) (.+?) (in|after) (\d+) (month|months|weeks|days)', text)
-        if forecast_match and found_food:
+        if forecast_match and matching_foods:
             num = int(forecast_match.group(4))
             unit = forecast_match.group(5)
             if unit.startswith('month'):
@@ -224,25 +187,31 @@ def chat(req: Request):
             else:
                 delta = pd.Timedelta(days=num)
             future_date = df_raw["Date"].max() + delta
-            # Prepare features for prediction
-            row = {col: 0 for col in feature_cols}
-            row['day'] = future_date.day
-            row['month'] = future_date.month
-            row['year'] = future_date.year
-            food_col = [c for c in feature_cols if found_food in c]
-            state_col = [c for c in feature_cols if found_state and found_state in c]
-            for c in food_col: row[c] = 1
-            for c in state_col: row[c] = 1
-            X_pred = pd.DataFrame([row])[feature_cols]
-            pred = model.predict(X_pred)[0]
-            reply = f"Forecasted price of {found_food}{' in ' + found_state if found_state else ''} in {num} {unit}: ₦{pred:,.0f}\n\n(Data source: Nigerian Food Price Tracking Dataset, NBS)"
+            reply = ""
+            for food in matching_foods:
+                row = {col: 0 for col in feature_cols}
+                row['day'] = future_date.day
+                row['month'] = future_date.month
+                row['year'] = future_date.year
+                food_col = [c for c in feature_cols if food in c]
+                state_col = [c for c in feature_cols if found_state and found_state in c]
+                for c in food_col: row[c] = 1
+                for c in state_col: row[c] = 1
+                X_pred = pd.DataFrame([row])[feature_cols]
+                pred = model.predict(X_pred)[0]
+                reply += f"Forecasted price of {food}{' in ' + found_state if found_state else ''} in {num} {unit}: ₦{pred:,.0f}\n"
+            reply += "\nCurious about trends? Ask for a trend summary!"
             return {"reply": reply}
 
-        # Filter dataset
-        df_item = df_raw[df_raw["Food Item"] == found_food]
+        # Filter dataset for single food
+        food = matching_foods[0] if matching_foods else found_food
+        df_item = df_raw[df_raw["Food Item"] == food]
         if found_state:
             df_item = df_item[df_item["State"] == found_state]
-
+        if found_lga:
+            df_item = df_item[df_item["LGA"] == found_lga]
+        if found_outlet:
+            df_item = df_item[df_item["Outlet Type"] == found_outlet]
         if df_item.empty:
             return {"reply": "Sorry, I couldn't find enough data for that query."}
 
@@ -270,25 +239,10 @@ def chat(req: Request):
             trend = "Prices are stable over the last month."
 
         loc = f" in {found_state}" if found_state else ""
-        reply = f"Latest price of {found_food}{loc}: ₦{latest_price:,.0f}\n{trend}\n\n(Data source: Nigerian Food Price Tracking Dataset, NBS)"
+        lga = f", {found_lga}" if found_lga else ""
+        outlet = f" at {found_outlet}" if found_outlet else ""
+        reply = f"Latest price of {food}{loc}{lga}{outlet}: ₦{latest_price:,.0f}\n{trend}\n"
+        reply += "\nTip: You can ask for the cheapest LGA or outlet, or request a forecast!"
         return {"reply": reply}
-
     except Exception as e:
-        return {"reply": "Sorry, something went wrong. Please try again later. (If this persists, contact support.)"}
-
-# ─── Data Info Endpoints for Frontend Help ─────────────────────────────────────
-@app.get("/info")
-def info():
-    foods = sorted(set(df_raw["Food Item"].dropna().unique()))
-    states = sorted(set(df_raw["State"].dropna().unique()))
-    lgas = sorted(set(df_raw["LGA"].dropna().unique()))
-    outlets = sorted(set(df_raw["Outlet Type"].dropna().unique()))
-    min_date = str(df_raw["Date"].min().date())
-    max_date = str(df_raw["Date"].max().date())
-    return {
-        "foods": foods,
-        "states": states,
-        "lgas": lgas,
-        "outlets": outlets,
-        "date_range": {"start": min_date, "end": max_date}
-    }
+        return {"reply": "Sorry, something went wrong. Please try again later or contact support if the issue persists."}

@@ -10,46 +10,53 @@
 }
 
 body {
-  @apply font-sans text-brand-light;
-  background: theme('backgroundImage.dark-gradient');
+  @apply font-sans text-brand-dark bg-tan-gradient;
   background-size: 400% 400%;
   animation: gradientShift 30s ease infinite;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  letter-spacing: 0.01em;
 }
 
-/* Glassmorphism and earthy theme */
-body {
-  background: linear-gradient(135deg, #E9D8C3 0%, #F6E7D7 100%);
-  color: #3B2F23;
-  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+h1, h2, h3, .font-futuristic {
+  font-family: 'Orbitron', 'Inter', 'Segoe UI', Arial, sans-serif;
+  letter-spacing: 0.04em;
+  font-weight: 800;
 }
 
 .glass {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.22);
   box-shadow: 0 8px 32px 0 rgba(60, 40, 20, 0.18);
-  backdrop-filter: blur(8px);
-  border-radius: 1.5rem;
-  border: 1px solid rgba(124, 79, 42, 0.18);
+  backdrop-filter: blur(16px) saturate(1.2);
+  border-radius: 2rem;
+  border: 1.5px solid rgba(124, 79, 42, 0.22);
 }
 
-.btn-primary {
-  background: linear-gradient(90deg, #7C4F2A 0%, #3B2F23 100%);
-  color: #fff;
-  border-radius: 0.75rem;
-  font-weight: 600;
-  transition: background 0.2s;
+.btn-primary, .btn-primary-glow {
+  background: linear-gradient(90deg, #FFD700 0%, #7C4F2A 100%);
+  color: #2D1B0E !important;
+  border-radius: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  box-shadow: 0 2px 12px 0 rgba(255,179,0,0.12), 0 8px 32px 0 rgba(60,40,20,0.10);
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+  text-shadow: 0 1px 8px #fff, 0 0px 2px #FFD70099;
 }
-.btn-primary:hover {
-  background: linear-gradient(90deg, #3B2F23 0%, #7C4F2A 100%);
+.btn-primary:hover, .btn-primary-glow:hover {
+  background: linear-gradient(90deg, #7C4F2A 0%, #FFD700 100%);
+  color: #fff !important;
+  box-shadow: 0 4px 24px 0 rgba(124,79,42,0.18), 0 0 40px 10px #FFD700;
 }
 
 .header {
-  background: #3B2F23;
-  color: #F6E7D7;
+  background: #2D1B0E;
+  color: #FFD700;
+  font-family: 'Orbitron', 'Inter', 'Segoe UI', Arial, sans-serif;
 }
 
 .footer {
   background: #7C4F2A;
-  color: #E9D8C3;
+  color: #FFD700;
+  font-family: 'Orbitron', 'Inter', 'Segoe UI', Arial, sans-serif;
 }
 
 ::-webkit-scrollbar {
@@ -57,20 +64,30 @@ body {
   background: #E9D8C3;
 }
 ::-webkit-scrollbar-thumb {
-  background: #7C4F2A;
+  background: #FFD700;
   border-radius: 4px;
 }
 
 /* Chatbot message bubbles */
 .user-message {
-  background: #E9D8C3;
-  color: #3B2F23;
-  border-radius: 1rem 1rem 0.25rem 1rem;
+  background: #FFFBEA;
+  color: #2D1B0E;
+  border-radius: 1.25rem 1.25rem 0.5rem 1.25rem;
+  font-weight: 600;
+  box-shadow: 0 2px 8px 0 rgba(255,179,0,0.08);
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  padding: 0.75rem 1.25rem;
+  margin-bottom: 0.5rem;
 }
 .bot-message {
-  background: #7C4F2A;
-  color: #fff;
-  border-radius: 1rem 1rem 1rem 0.25rem;
+  background: #2D1B0E;
+  color: #FFD700;
+  border-radius: 1.25rem 1.25rem 1.25rem 0.5rem;
+  font-weight: 500;
+  box-shadow: 0 2px 8px 0 rgba(44,27,14,0.08);
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  padding: 0.75rem 1.25rem;
+  margin-bottom: 0.5rem;
 }
 
 /* Utility classes for earthy theme */
@@ -99,7 +116,9 @@ body {
 }
 
 .glassmorphism {
-  @apply bg-accent-xlight backdrop-blur-lg rounded-3xl p-8 shadow-2xl;
+  @apply bg-accent-xlight backdrop-blur-lg rounded-3xl p-8 shadow-2xl border-2 border-yellow-400/30;
+  box-shadow: 0 8px 32px 0 rgba(60, 40, 20, 0.18), 0 2px 12px 0 rgba(255,179,0,0.10);
+  background: rgba(255,255,255,0.18);
 }
 
 /* Modern animated button with glow and gradient */
@@ -175,4 +194,20 @@ body {
   color: #FFD700;
   background: #4B3A2F;
   text-shadow: 0 2px 8px #000, 0 1px 0 #fff;
+}
+
+/* Soft UI effect for cards and sections */
+.soft-card {
+  background: linear-gradient(135deg, #FFFBEA 60%, #F6E7D7 100%);
+  border-radius: 2rem;
+  box-shadow: 0 8px 32px 0 rgba(60, 40, 20, 0.10), 0 2px 12px 0 rgba(255,179,0,0.08);
+  border: 1.5px solid #FFD70033;
+  padding: 2rem 2.5rem;
+  margin-bottom: 2rem;
+}
+
+/* Font smoothing for extra softness */
+body, .glass, .glassmorphism, .soft-card {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }

@@ -119,18 +119,36 @@ def chat(req: Request):
 
         # Find all foods matching a generic query (e.g. 'rice' matches 'Imported Rice', 'Local Rice')
         matching_foods = [f for f in foods if f.lower() in text or text in f.lower()]
-        if not matching_foods and not found_food:
-            matches = get_close_matches(text, [f.lower() for f in foods], n=3, cutoff=0.4)
-            if matches:
-                sug_names = ', '.join([f.title() for f in matches])
-                return {"reply": f"I couldn't find that food item. Did you mean: {sug_names}?"}
-            return {"reply": "Sorry, I couldn't recognize the food item. Please try again with a different name."}
+        # If user input matches a generic term or a variant, always show all variants
+        if (not found_food and matching_foods) or (found_food and len(matching_foods) > 1):
+            reply = f"Here are the prices for all types of {text.strip()} in your selected location:\n"
+            found_any = False
+            for food in matching_foods:
+                df_item = df_raw[df_raw["Food Item"] == food]
+                if found_state:
+                    df_item = df_item[df_item["State"] == found_state]
+                if found_lga:
+                    df_item = df_item[df_item["LGA"] == found_lga]
+                if found_outlet:
+                    df_item = df_item[df_item["Outlet Type"] == found_outlet]
+                if df_item.empty:
+                    reply += f"- {food}: No data available.\n"
+                    continue
+                found_any = True
+                latest_date = df_item["Date"].max()
+                latest_price = df_item[df_item["Date"] == latest_date]["UPRICE"].mean()
+                reply += f"- {food}: ₦{latest_price:,.0f} (latest: {latest_date.date()})\n"
+            if found_any:
+                reply += "\nTip: You can specify a more precise food type, state, LGA, or outlet for even more accurate info!"
+            else:
+                reply += "No price data found for these variants. Try another food or location."
+            return {"reply": reply}
         if found_food and found_food not in matching_foods:
             matching_foods.append(found_food)
         if not matching_foods:
             matching_foods = [found_food] if found_food else []
 
-        # If multiple foods match, answer for all variants
+        # If multiple foods match, answer for all variants (fallback)
         if len(matching_foods) > 1:
             reply = "I found multiple food items matching your query:\n"
             for food in matching_foods:
@@ -156,7 +174,6 @@ def chat(req: Request):
             df_item = df_raw[df_raw["Food Item"] == food]
             if found_state:
                 df_item = df_item[df_item["State"] == found_state]
-            # Top LGAs
             lga_prices = df_item.groupby("LGA")["UPRICE"].mean().sort_values().head(3)
             outlet_prices = df_item.groupby("Outlet Type")["UPRICE"].mean().sort_values().head(3)
             reply = f"Top 3 cheapest LGAs for {food}"
@@ -175,7 +192,6 @@ def chat(req: Request):
             return {"reply": reply}
 
         # Model-based price forecasting for all matching foods
-        import regex as re
         forecast_match = re.search(r'(predict|forecast|future price|price in) (.+?) (in|after) (\d+) (month|months|weeks|days)', text)
         if forecast_match and matching_foods:
             num = int(forecast_match.group(4))

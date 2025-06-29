@@ -15,6 +15,11 @@ export default function Home() {
   const chatSectionRef = useRef(null);
   const insightsSectionRef = useRef(null);
 
+  // Scroll to top on initial load
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, []);
+
   // Scroll to bottom on new message
   useEffect(() => {
     if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: 'smooth' });

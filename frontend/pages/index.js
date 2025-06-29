@@ -14,6 +14,7 @@ export default function Home() {
   const chatEndRef = useRef(null);
   const chatSectionRef = useRef(null);
   const insightsSectionRef = useRef(null);
+  const inputRef = useRef(null);
 
   // Scroll to top on initial load
   useEffect(() => {
@@ -59,18 +60,17 @@ export default function Home() {
     }
   }, []);
 
-  // Scroll to section with offset for fixed header
+  // Scroll to section with offset for fixed header, using scrollIntoView for accessibility
   const scrollToSection = (ref) => {
     if (ref.current) {
-      const y = ref.current.getBoundingClientRect().top + window.scrollY - 80; // 80px header offset
-      window.scrollTo({ top: y, behavior: 'smooth' });
+      ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 
   // Chatbot submit handler
   async function handleChatSubmit(e) {
     e.preventDefault();
-    e.stopPropagation(); // Prevent any bubbling that could cause scroll
+    e.stopPropagation();
     setError("");
     if (!input.trim()) return;
     setMessages(msgs => [...msgs, { role: 'user', text: input }]);
@@ -91,9 +91,7 @@ export default function Home() {
       setInput("");
       // Keep focus in the input after sending
       setTimeout(() => {
-        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
-        const inputEl = document.querySelector('input[type="text"]');
-        if (inputEl) inputEl.focus();
+        if (inputRef.current) inputRef.current.focus();
       }, 100);
     }
   }
@@ -174,7 +172,7 @@ export default function Home() {
                 <span>For best results, check the <a href="#quickstart" className="underline hover:text-[#E8A46B] transition">Quick Start</a> section above before chatting!</span>
               </div>
               {/* Messages List */}
-              <div className="flex-1 overflow-y-auto pr-3 mb-4">
+              <div className="flex-1 overflow-y-auto pr-3 mb-4" role="log" aria-live="polite" aria-label="Chat messages">
                 {messages.length === 0 && (
                   <p className="text-center text-[#4E342E] font-inter text-lg py-8">Ask me anything about food prices in Nigeria!</p>
                 )}
@@ -196,15 +194,18 @@ export default function Home() {
               {/* User Input Form */}
               <form onSubmit={handleChatSubmit} className="flex gap-4">
                 <input
+                  ref={inputRef}
                   type="text"
                   value={input}
                   onChange={e => setInput(e.target.value)}
                   placeholder="Type your message here..."
                   className="flex-1 px-4 py-2 text-lg rounded-3xl border border-[#E8A46B] focus:outline-none focus:ring-2 focus:ring-brand-tan transition"
+                  aria-label="Type your message to the chatbot"
                 />
                 <button
                   type="submit"
                   className="px-6 py-2 text-lg font-semibold rounded-3xl bg-[#6B4F2B] text-[#FFF7ED] shadow-md hover:bg-[#E8A46B] hover:text-[#6B4F2B] transition flex items-center gap-2"
+                  aria-label="Send message"
                 >
                   {loading ? (
                     <>Sending... <div className="loader-small" /></>

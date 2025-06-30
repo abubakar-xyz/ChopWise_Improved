@@ -231,34 +231,29 @@ export default function Home() {
       </main>
 
       {/* Creative Footer */}
-      <footer className="w-full bg-gradient-to-br from-[#6B4F2B] via-[#E8A46B]/80 to-[#FFF7ED] py-12 px-4 flex flex-col items-center justify-center border-t border-[#E8A46B]/30 mt-10 shadow-inner relative overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none z-0">
-          <svg width="100%" height="100" viewBox="0 0 1440 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-24 md:h-32 opacity-30">
-            <path d="M0,80 Q360,0 720,80 T1440,80 V100 H0 Z" fill="#FFF7ED" />
-          </svg>
+      <footer className="w-full bg-gradient-to-br from-[#FFF7ED] via-[#E8A46B] to-[#6B4F2B] py-10 px-4 flex flex-col items-center justify-center relative overflow-hidden mt-16">
+        <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8 text-center z-10">
+          <span className="flex items-center gap-2 text-lg md:text-xl font-lora text-[#6B4F2B] font-semibold animate-pulse">
+            <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#E8A46B]/80 shadow-lg animate-bounce" aria-label="Crafted with passion">
+              <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41 0.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+            </span>
+            Crafted with passion by
+            <a href="https://www.linkedin.com/in/abubakar-abdulfatah/" target="_blank" rel="noopener noreferrer" className="underline hover:text-[#E8A46B] transition font-bold">Abubakar Abdulfatah</a>
+            <span className="hidden md:inline">·</span>
+            <span className="inline-flex items-center gap-1">
+              <a href="https://github.com/abubakar-xyz" target="_blank" rel="noopener noreferrer" aria-label="GitHub profile" className="ml-1 hover:text-[#E8A46B]">
+                <svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.48 2 2 6.58 2 12.26c0 4.5 2.87 8.32 6.84 9.67.5.09.68-.22.68-.48 0-.24-.01-.87-.01-1.7-2.78.62-3.37-1.36-3.37-1.36-.45-1.18-1.1-1.5-1.1-1.5-.9-.63.07-.62.07-.62 1 .07 1.53 1.05 1.53 1.05.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.37-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.7 0 0 .84-.28 2.75 1.05A9.38 9.38 0 0 1 12 6.84c.85.004 1.71.12 2.51.35 1.91-1.33 2.75-1.05 2.75-1.05.55 1.4.2 2.44.1 2.7.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.07.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.58.69.48A10.01 10.01 0 0 0 22 12.26C22 6.58 17.52 2 12 2z"/></svg>
+              </a>
+            </span>
+          </span>
         </div>
-        <div className="flex flex-col items-center gap-4 z-10 relative w-full max-w-3xl">
-          <div className="flex flex-col md:flex-row items-center justify-center gap-3 w-full animate-fade-in-up">
-            <span className="inline-flex items-center gap-2 text-2xl md:text-3xl font-lora font-bold text-[#FFF7ED] drop-shadow-lg tracking-tight">
-              <span role="img" aria-label="Heart" className="animate-bounce text-[#E8A46B]">❤️</span>
-              Crafted with passion by
-              <a href="https://www.linkedin.com/in/abubakar-abdulfatah/" target="_blank" rel="noopener noreferrer" className="text-[#E8A46B] font-extrabold font-orbitron ml-1 hover:underline hover:text-[#FFF7ED] transition" aria-label="Abubakar Abdulfatah LinkedIn">Abubakar Abdulfatah</a>
-            </span>
-            <span className="hidden md:inline text-[#E8A46B] text-2xl">·</span>
-            <span className="text-lg font-inter text-[#FFF7ED]/80 italic text-center tracking-wide">
-              as part of the <span className="font-bold text-[#E8A46B]">3MTT Monthly Knowledge Showcase</span>
-            </span>
-          </div>
-          <div className="flex flex-col md:flex-row items-center justify-center gap-3 w-full animate-fade-in-up">
-            <span className="inline-flex items-center gap-2 text-base font-inter text-[#FFF7ED]/80">
-              <span role="img" aria-label="Copilot" className="animate-spin text-[#E8A46B]">🤖</span>
-              Made possible in record time with the assistance of
-              <a href="https://github.com/abubakar-xyz" target="_blank" rel="noopener noreferrer" className="text-[#E8A46B] font-semibold hover:underline hover:text-[#FFF7ED] transition" aria-label="Abubakar Abdulfatah GitHub">GitHub Copilot</a>
-            </span>
-          </div>
-          {/* Rotating quote/message */}
-          <RotatingFooterMessage />
+        <div className="flex items-center gap-2 mt-4 text-base md:text-lg text-[#4E342E] font-inter">
+          <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#E8A46B]/80 shadow animate-spin-slow" aria-label="GitHub Copilot">
+            <svg width="20" height="20" fill="none" viewBox="0 0 32 32" aria-label="GitHub Copilot logo"><circle cx="16" cy="16" r="16" fill="#24292F"/><path d="M10.5 16a5.5 5.5 0 1 1 11 0v2.5a2.5 2.5 0 0 1-5 0v-2.5a.5.5 0 0 0-1 0v2.5a2.5 2.5 0 0 1-5 0V16z" fill="#A5D6F9"/><circle cx="12.5" cy="16.5" r="1.5" fill="#fff"/><circle cx="19.5" cy="16.5" r="1.5" fill="#fff"/></svg>
+          </span>
+          <span className="ml-1">Made possible in record time with the assistance of <span className="font-bold" title="GitHub Copilot: AI pair programmer">GitHub Copilot</span>.</span>
         </div>
+        <div className="absolute inset-0 pointer-events-none z-0 bg-gradient-to-tr from-[#E8A46B]/20 via-[#F6E7D7]/10 to-[#6B4F2B]/10" />
       </footer>
 
       {/* Rotating Footer Message Component */}

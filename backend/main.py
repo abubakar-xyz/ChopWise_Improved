@@ -10,13 +10,16 @@ import random
 from difflib import get_close_matches
 from starlette.concurrency import run_in_threadpool
 from functools import lru_cache
+import httpx
+import logging
+from typing import Optional
 
 # ─── App & CORS Setup ──────────────────────────────────────────────────────────
 app = FastAPI()
 # Allow your Netlify site (or “*” during dev) to call these endpoints
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],            # in prod, replace "*" with your Netlify URL
+    allow_origins=["https://chopwise.netlify.app"],  # Production frontend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -49,7 +52,8 @@ forecast_cache = {}
 class Request(BaseModel):
     message: str
 
-# ─── Helpers ──────────────────────────────────────────────────────────────────
+class ChatRequest(BaseModel):
+    messages: list  # List of {user: str, bot
 def format_reply(templates, **kwargs):
     """Pick one of the templates at random and format it."""
     return random.choice(templates).format(**kwargs)
@@ -108,11 +112,59 @@ def score_intents(text):
 def health():
     return {"status": "ok"}
 
+# ─── Groq LLM Integration ─────────────────────────────────────────────────────
+GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
+GROQ_MODEL = "llama-3-70b-8192"  # Best for conversational tasks
+
+async def query_groq(messages, context):
+    prompt = (
+        "You are ChopWise, a super-friendly Nigerian food price assistant. "
+        "Always use emojis, be helpful, and handle follow-ups, clarifications, and corrections. "
+        "Use the food price info below to answer questions.\n\n"
+        f"Food Price Data:\n{context}\n\n"
+        "Chat History:\n" + "\n".join([f"User: {m['user']}\nBot: {m['bot']}" for m in messages if m['user'] or m['bot']]) + "\n\n"
+        "Respond in a personalized, friendly, and helpful way."
+    )
+    payload = {
+        "model": GROQ_MODEL,
+        "messages": [
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": messages[-1]['user'] if messages else ""}
+        ],
+        "temperature": 0.7,
+        "max_tokens": 512
+    }
+    async with httpx.AsyncClient(timeout=15) as client:
+        try:
+            resp = await client.post(GROQ_API_URL, json=payload)
+            resp.raise_for_status()
+            data = resp.json()
+            reply = data['choices'][0]['message']['content']
+            return reply
+        except Exception as e:
+            return "Sorry, I couldn't reach my LLM brain right now. Please try again later! 😔"
+
 # --- Async Chat Endpoint ---
-from fastapi import Request as FastAPIRequest
+from fastapi import Request as FastAPIRequest, Cookie
+from fastapi.responses import JSONResponse
+import uuid
+from typing import Optional
+
+# --- Session Store (in-memory, for demo) ---
+sessions = {}
+
 @app.post("/chat")
-async def chat(req: Request):
-    text = req.message
+async def chat(req: ChatRequest, session_id: Optional[str] = Cookie(None)):
+    # Assign or retrieve session
+    if not session_id:
+        session_id = str(uuid.uuid4())
+        sessions[session_id] = []
+    if session_id not in sessions:
+        sessions[session_id] = []
+    messages = req.messages
+    if not messages or not isinstance(messages, list):
+        return JSONResponse(content={"reply": "Please provide a valid chat history.", "session_id": session_id}, headers={"set-cookie": f"session_id={session_id}; Path=/; SameSite=Lax"})
+    text = messages[-1]['user'] if messages else ""
     entities = extract_entities(text)
     matching_foods = entities['foods']
     found_state = entities['state']
@@ -123,142 +175,21 @@ async def chat(req: Request):
         from difflib import get_close_matches
         suggestions = get_close_matches(text, [f.lower() for f in foods], n=3, cutoff=0.4)
         if suggestions:
-            sug_names = ', '.join([f.title() for f in suggestions])
-            return {"reply": f"I couldn't find that food item. Did you mean: {sug_names}?"}
-        return {"reply": "Sorry, I couldn't recognize the food item. Please try again with a different name."}
-    # Intent scoring
-    intents = score_intents(text)
-    intent, score = max(intents.items(), key=lambda x: x[1])
-    if score < 0.3:
-        intent = 'price'  # Default to price if not confident
-    # Run heavy logic in threadpool
-    return await run_in_threadpool(process_intent, intent, matching_foods, found_state, found_lga, found_outlet, text)
-
-def process_intent(intent, matching_foods, found_state, found_lga, found_outlet, text):
-    try:
-        # Multi-food always returns all variants
-        if len(matching_foods) > 1:
-            reply = "Here are the results for all matching food items:\n"
-            for food in matching_foods:
-                df_item = by_food[food]
-                if found_state:
-                    df_item = df_item[df_item["State"] == found_state]
-                if found_lga:
-                    df_item = df_item[df_item["LGA"] == found_lga]
-                if found_outlet:
-                    df_item = df_item[df_item["Outlet Type"] == found_outlet]
-                if df_item.empty:
-                    reply += f"- {food}: No data available.\n"
-                    continue
-                latest_date = df_item["Date"].max()
-                latest_price = df_item[df_item["Date"] == latest_date]["UPRICE"].mean()
-                reply += f"- {food}: ₦{latest_price:,.0f} (latest: {latest_date.date()})\n"
-            reply += "\nTip: You can specify a state, LGA, or outlet for more precise info!"
-            return {"reply": reply}
-        # Cheapest intent
-        if intent == 'cheapest':
-            food = matching_foods[0]
-            df_item = by_food[food]
-            if found_state:
-                df_item = df_item[df_item["State"] == found_state]
-            lga_prices = df_item.groupby("LGA")["UPRICE"].mean().sort_values().head(3)
-            outlet_prices = df_item.groupby("Outlet Type")["UPRICE"].mean().sort_values().head(3)
-            reply = f"Top 3 cheapest LGAs for {food}"
-            if found_state:
-                reply += f" in {found_state}"
-            reply += ":\n"
-            for i, (lga, price) in enumerate(lga_prices.items(), 1):
-                reply += f"{i}. {lga}: ₦{price:,.0f}\n"
-            reply += f"\nTop 3 cheapest outlet types for {food}"
-            if found_state:
-                reply += f" in {found_state}"
-            reply += ":\n"
-            for i, (outlet, price) in enumerate(outlet_prices.items(), 1):
-                reply += f"{i}. {outlet}: ₦{price:,.0f}\n"
-            reply += "\nWant more details? Ask about a specific LGA or outlet!"
-            return {"reply": reply}
-        # Forecast intent (with cache)
-        if intent == 'forecast':
-            import regex as re
-            forecast_match = re.search(r'(predict|forecast|future price|price in) (.+?) (in|after) (\d+) (month|months|weeks|days)', text)
-            if forecast_match:
-                num = int(forecast_match.group(4))
-                unit = forecast_match.group(5)
-                cache_key = (tuple(matching_foods), found_state, num, unit)
-                if cache_key in forecast_cache:
-                    return {"reply": forecast_cache[cache_key]}
-                if unit.startswith('month'):
-                    delta = pd.Timedelta(days=30*num)
-                elif unit.startswith('week'):
-                    delta = pd.Timedelta(days=7*num)
-                else:
-                    delta = pd.Timedelta(days=num)
-                future_date = df_raw["Date"].max() + delta
-                reply = ""
-                for food in matching_foods:
-                    row = {col: 0 for col in feature_cols}
-                    row['day'] = future_date.day
-                    row['month'] = future_date.month
-                    row['year'] = future_date.year
-                    food_col = [c for c in feature_cols if food in c]
-                    state_col = [c for c in feature_cols if found_state and found_state in c]
-                    for c in food_col: row[c] = 1
-                    for c in state_col: row[c] = 1
-                    X_pred = pd.DataFrame([row])[feature_cols]
-                    pred = model.predict(X_pred)[0]
-                    reply += f"Forecasted price of {food}{' in ' + found_state if found_state else ''} in {num} {unit}: ₦{pred:,.0f}\n"
-                reply += "\nCurious about trends? Ask for a trend summary!"
-                forecast_cache[cache_key] = reply
-                return {"reply": reply}
-        # Trend intent
-        if intent == 'trend':
-            food = matching_foods[0]
-            df_item = by_food[food]
-            if found_state:
-                df_item = df_item[df_item["State"] == found_state]
-            if found_lga:
-                df_item = df_item[df_item["LGA"] == found_lga]
-            if found_outlet:
-                df_item = df_item[df_item["Outlet Type"] == found_outlet]
-            if df_item.empty:
-                return {"reply": "Sorry, I couldn't find enough data for that query."}
-            latest_date  = df_item["Date"].max()
-            latest_price = df_item[df_item["Date"] == latest_date]["UPRICE"].mean()
-            one_month_ago   = latest_date - pd.Timedelta(days=30)
-            three_months_ago= latest_date - pd.Timedelta(days=90)
-            recent_1m       = df_item[df_item["Date"] >= one_month_ago]["UPRICE"]
-            recent_3m       = df_item[df_item["Date"] >= three_months_ago]["UPRICE"]
-            avg_1m = recent_1m.mean() if not recent_1m.empty else latest_price
-            avg_3m = recent_3m.mean() if not recent_3m.empty else latest_price
-            pct_1m = (latest_price - avg_1m) / avg_1m * 100 if avg_1m else 0
-            pct_3m = (latest_price - avg_3m) / avg_3m * 100 if avg_3m else 0
-            if pct_1m > 5:
-                trend = f"Prices are rising (up {pct_1m:.1f}% in the last month)."
-            elif pct_1m < -5:
-                trend = f"Prices are falling (down {abs(pct_1m):.1f}% in the last month)."
-            else:
-                trend = "Prices are stable over the last month."
-            loc = f" in {found_state}" if found_state else ""
-            lga = f", {found_lga}" if found_lga else ""
-            outlet = f" at {found_outlet}" if found_outlet else ""
-            reply = f"Trend for {food}{loc}{lga}{outlet}: {trend}\n"
-            reply += "\nTip: You can ask for the cheapest LGA or outlet, or request a forecast!"
-            return {"reply": reply}
-        # Price intent (default)
-        food = matching_foods[0]
-        df_item = by_food[food]
-        if found_state:
-            df_item = df_item[df_item["State"] == found_state]
-        if found_lga:
-            df_item = df_item[df_item["LGA"] == found_lga]
-        if found_outlet:
-            df_item = df_item[df_item["Outlet Type"] == found_outlet]
-        if df_item.empty:
-            return {"reply": "Sorry, I couldn't find enough data for that query."}
-        latest_date  = df_item["Date"].max()
-        latest_price = df_item[df_item["Date"] == latest_date]["UPRICE"].mean()
-        reply = f"Latest price of {food}{' in ' + found_state if found_state else ''}: ₦{latest_price:,.0f}\n"
-        reply += "\nTip: You can ask for the cheapest LGA or outlet, or request a forecast!"
-        return {"reply": reply}
-    except Exception as e:
-        return {"reply": "Sorry, something went wrong. Please try again later or contact support if the issue persists."}
+            return JSONResponse(content={"reply": f"I couldn't find that food. Did you mean: {', '.join(suggestions)}? 🍲", "session_id": session_id}, headers={"set-cookie": f"session_id={session_id}; Path=/; SameSite=Lax"})
+        else:
+            return JSONResponse(content={"reply": "Sorry, I couldn't find that food item. Please try again! 🥲", "session_id": session_id}, headers={"set-cookie": f"session_id={session_id}; Path=/; SameSite=Lax"})
+    # Gather context from CSV for matching foods
+    context_rows = df_raw[df_raw["Food Item"].isin(matching_foods)]
+    if found_state:
+        context_rows = context_rows[context_rows["State"] == found_state]
+    if found_lga:
+        context_rows = context_rows[context_rows["LGA"] == found_lga]
+    if found_outlet:
+        context_rows = context_rows[context_rows["Outlet Type"] == found_outlet]
+    # Limit context to last 10 rows for brevity
+    context = context_rows.tail(10).to_string(index=False)
+    # Track session messages
+    sessions[session_id].extend(messages[-3:])  # Keep last 3 for context
+    session_history = sessions[session_id][-3:]
+    reply = await query_groq(session_history, context)
+    return JSONResponse(content={"reply": reply, "session_id": session_id}, headers={"set-cookie": f"session_id={session_id}; Path=/; SameSite=Lax"})

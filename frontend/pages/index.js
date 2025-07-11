@@ -11,6 +11,12 @@ export default function Home() {
   const [messages, setMessages] = useState([]); // {role: 'user'|'bot', text: string}
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [sessionId, setSessionId] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('chopwise_session_id') || '';
+    }
+    return '';
+  });
   const chatEndRef = useRef(null);
   const chatSectionRef = useRef(null);
   const insightsSectionRef = useRef(null);
@@ -73,26 +79,46 @@ export default function Home() {
     e.stopPropagation();
     setError("");
     if (!input.trim()) return;
+    // Add user message
     setMessages(msgs => [...msgs, { role: 'user', text: input }]);
     setLoading(true);
     try {
-      const res = await fetch(`${BACKEND_URL}/chat`, {
+      // Prepare last 2 message pairs + new user input for context
+      const history = [];
+      let userCount = 0;
+      for (let i = messages.length - 1; i >= 0 && history.length < 4; i--) {
+        if (messages[i].role === 'user') {
+          userCount++;
+          history.unshift({ user: messages[i].text, bot: messages[i + 1]?.role === 'bot' ? messages[i + 1].text : "" });
+        }
+      }
+      // Add current input as last user message
+      history.push({ user: input, bot: "" });
+      // Only keep last 3 exchanges
+      const chatHistory = history.slice(-3);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || '/api'}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: input })
+        body: JSON.stringify({ session_id: sessionId, messages: chatHistory })
       });
-      if (!res.ok) throw new Error('Network error');
       const data = await res.json();
-      setMessages(msgs => [...msgs, { role: 'bot', text: data.reply }]);
+      if (data.session_id) {
+        setSessionId(data.session_id);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('chopwise_session_id', data.session_id);
+        }
+      }
+      if (data.reply) {
+        setMessages(msgs => [...msgs, { role: 'bot', text: data.reply }]);
+      } else {
+        setError("No reply from server.");
+      }
     } catch (err) {
-      setError('Sorry, something went wrong. Please try again.');
+      setError("Failed to reach chatbot. Please try again.");
     } finally {
       setLoading(false);
       setInput("");
-      // Keep focus in the input after sending
-      setTimeout(() => {
-        if (inputRef.current) inputRef.current.focus();
-      }, 100);
+      if (inputRef.current) inputRef.current.focus();
     }
   }
 
@@ -118,7 +144,7 @@ export default function Home() {
         <section className="hero bg-gradient-to-br from-[#F6E7D7] via-[#E8A46B] to-[#6B4F2B] relative overflow-hidden">
           <div className="container z-10 relative">
             <h1 className="heading-1 mb-4 font-lora text-4xl md:text-5xl lg:text-6xl text-[#6B4F2B] drop-shadow-xl">Know what to buy. Know when to buy. Eat better every day.</h1>
-            <p className="text-lg md:text-2xl font-inter text-[#4E342E] mb-8 max-w-2xl mx-auto font-medium drop-shadow-sm">Real-time food prices across Nigeria—so you plan smarter and save without skimping on nutrition.</p>
+            <p className="text-lg md:text-2xl font-inter text-[#4E342E] mb-8 max-w-2xl mx-auto font-medium drop-shadow-sm">Now powered by advanced AI (LLM) for smarter, context-aware answers. Real-time food prices across Nigeria—plan smarter, save more, and get personalized insights.</p>
             <button className="btn text-xl mt-6 font-inter shadow-xl" style={{ minWidth: 220 }} onClick={() => scrollToSection(chatSectionRef)} aria-label="Open chat">Find Your Best Price</button>
           </div>
           <div className="absolute inset-0 pointer-events-none z-0 bg-gradient-to-tr from-[#E8A46B]/30 via-[#F6E7D7]/10 to-[#6B4F2B]/20" />
@@ -135,7 +161,7 @@ export default function Home() {
                 <span className="font-lora font-bold text-xl text-[#6B4F2B] tracking-tight">Quick Start</span>
               </div>
               <ul className="how-to-list space-y-4 text-[#4E342E] text-base font-inter">
-                <li className="flex items-start gap-3"><span className="icon-tip">💬</span><span>Ask about food prices:<br className="md:hidden" /><span className="block ml-7 mt-1 text-sm font-normal">“What’s the price of <b>rice in Lagos</b>?”</span></span></li>
+                <li className="flex items-start gap-3"><span className="icon-tip">💬</span><span>Ask about food prices:<br className="md:hidden" /><span className="block ml-7 mt-1 text-sm font-normal">“What’s the price of <b>rice in Lagos</b>?”<br/><span className='text-brand-brown font-semibold'>LLM-powered: understands context, follow-ups, and clarifications.</span></span></span></li>
                 <li className="flex items-start gap-3"><span className="icon-tip">📊</span><span>See all variants:<br className="md:hidden" /><span className="block ml-7 mt-1 text-sm font-normal">Type <b>“rice”</b> or <b>“maize”</b> to see all available types and prices.</span></span></li>
                 <li className="flex items-start gap-3"><span className="icon-tip">📍</span><span>Find the cheapest LGA or outlet:<br className="md:hidden" /><span className="block ml-7 mt-1 text-sm font-normal">“Where is <b>maize</b> cheapest in Kano?”</span></span></li>
                 <li className="flex items-start gap-3"><span className="icon-tip">📈</span><span>Get price trends & forecasts:<br className="md:hidden" /><span className="block ml-7 mt-1 text-sm font-normal">“How much will <b>beans</b> cost next week in Enugu?”</span></span></li>
@@ -169,30 +195,35 @@ export default function Home() {
             <div className="flex flex-col h-full">
               <div className="mb-6 text-center text-[#6B4F2B] font-lora text-lg md:text-xl bg-[#FFF7ED]/80 rounded-2xl px-4 py-3 shadow-sm">
                 <FaInfoCircle className="inline mr-2 text-[#E8A46B] text-xl align-text-bottom" />
-                <span>For best results, check the <a href="#quickstart" className="underline hover:text-[#E8A46B] transition">Quick Start</a> section above before chatting!</span>
+                <span>ChopWise is now <b>LLM-powered</b> for smarter, context-aware answers! Your last 3 messages and real food price data are used for every reply. <a href="#quickstart" className="underline hover:text-[#E8A46B] transition">See tips</a> for best results.</span>
               </div>
               {/* Messages List */}
               <div className="flex-1 overflow-y-auto pr-3 mb-4" role="log" aria-live="polite" aria-label="Chat messages">
                 {messages.length === 0 && (
-                  <p className="text-center text-[#4E342E] font-inter text-lg py-8">Ask me anything about food prices in Nigeria!</p>
+                  <p className="text-center text-[#4E342E] font-inter text-lg py-8">Ask me anything about food prices in Nigeria!<br/><span className='text-base text-[#6B4F2B] font-semibold'>Now powered by advanced AI (LLM) for smarter, context-aware answers. 🧠🤖</span></p>
                 )}
                 {messages.map((msg, idx) => (
-                  <div key={idx} className={`mb-4 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
-                    <div className={`inline-block px-4 py-2 rounded-3xl max-w-xs ${msg.role === 'user' ? 'bg-[#E8A46B] text-[#6B4F2B]' : 'bg-[#6B4F2B] text-[#FFF7ED]'}`}>
+                  <div key={idx} className={`mb-4 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}
+                    aria-label={msg.role === 'user' ? 'You' : 'ChopWise AI'}
+                    role="region"
+                  >
+                    <div className={`inline-block px-4 py-2 rounded-3xl max-w-xs shadow-md focus:outline-none focus:ring-2 focus:ring-brand-tan transition-all animate-fade-in-up ${msg.role === 'user' ? 'bg-[#E8A46B] text-[#6B4F2B] border border-[#6B4F2B]' : 'bg-[#6B4F2B] text-[#FFF7ED] border border-[#E8A46B]'} `} tabIndex={0} aria-live="polite">
+                      <span className="sr-only font-bold">{msg.role === 'user' ? 'You: ' : 'ChopWise AI: '}</span>
                       {msg.text}
                     </div>
                   </div>
                 ))}
                 {loading && (
-                  <div className="flex justify-center mb-4">
-                    <div className="loader" />
+                  <div className="flex justify-center mb-4" aria-live="assertive" aria-busy="true">
+                    <div className="loader animate-spin" aria-label="Loading response" />
+                    <span className="sr-only">ChopWise AI is thinking...</span>
                   </div>
                 )}
                 <div ref={chatEndRef} />
               </div>
 
               {/* User Input Form */}
-              <form onSubmit={handleChatSubmit} className="flex gap-4">
+              <form onSubmit={handleChatSubmit} className="flex gap-4" aria-label="Chat input form">
                 <input
                   ref={inputRef}
                   type="text"
@@ -201,14 +232,17 @@ export default function Home() {
                   placeholder="Type your message here..."
                   className="flex-1 px-4 py-2 text-lg rounded-3xl border border-[#E8A46B] focus:outline-none focus:ring-2 focus:ring-brand-tan transition"
                   aria-label="Type your message to the chatbot"
+                  aria-describedby="chatbot-help-text"
+                  disabled={loading}
                 />
                 <button
                   type="submit"
                   className="px-6 py-2 text-lg font-semibold rounded-3xl bg-[#6B4F2B] text-[#FFF7ED] shadow-md hover:bg-[#E8A46B] hover:text-[#6B4F2B] transition flex items-center gap-2"
                   aria-label="Send message"
+                  disabled={loading}
                 >
                   {loading ? (
-                    <>Sending... <div className="loader-small" /></>
+                    <>Sending... <div className="loader-small animate-spin-slow" aria-label="Sending" /></>
                   ) : (
                     <>Send <FaRobot className="text-xl" /></>
                   )}
@@ -263,6 +297,27 @@ export default function Home() {
           100% { opacity: 1; transform: translateY(0); }
         }
         .animate-fade-in-up { animation: fadeInUp 1s cubic-bezier(.4,0,.2,1) both; }
+        .loader, .loader-small {
+          border: 4px solid #E8A46B;
+          border-top: 4px solid #6B4F2B;
+          border-radius: 50%;
+          width: 32px;
+          height: 32px;
+          animation: spin 1s linear infinite;
+          display: inline-block;
+        }
+        .loader-small {
+          width: 18px;
+          height: 18px;
+          border-width: 3px;
+        }
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        .animate-spin-slow {
+          animation: spin 2s linear infinite;
+        }
       `}</style>
     </>
   );

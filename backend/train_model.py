@@ -37,3 +37,41 @@ if __name__ == '__main__':
     joblib.dump(X.columns.tolist(), 'features.pkl', compress=3)
 
     print('✅ Trained & saved compressed model (30 trees, depth≤10).')
+
+# --- Requirements for production deployment ---
+# Ensure all required packages are listed in requirements.txt
+# Add httpx (for Groq API calls)
+# Add scikit-learn, pandas, joblib, fastapi, uvicorn, regex, etc.
+
+# requirements.txt (add these lines if missing):
+# fastapi
+# uvicorn
+# pandas
+# scikit-learn
+# joblib
+# regex
+# httpx
+# starlette
+
+# --- If requirements.txt is missing httpx, add it ---
+# You can run: pip install httpx
+# Or add 'httpx' to requirements.txt and redeploy
+
+# --- For Render deployment ---
+# 1. Ensure requirements.txt is up to date
+# 2. Add httpx to requirements.txt
+# 3. Redeploy on Render
+# 4. Confirm build log shows httpx installed
+# 5. Test /chat endpoint from frontend
+
+# --- If you want to automate this, here is the requirements.txt update ---
+# (This is a comment for your reference)
+# fastapi
+# uvicorn
+# pandas
+# scikit-learn
+# joblib
+# regex
+# httpx
+# starlette
+# ...other dependencies as needed...

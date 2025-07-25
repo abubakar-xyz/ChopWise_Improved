@@ -143,7 +143,7 @@ export default function Home() {
         {/* Hero Section */}
         <section className="hero bg-gradient-to-br from-[#F6E7D7] via-[#E8A46B] to-[#6B4F2B] relative overflow-hidden">
           <div className="container z-10 relative">
-            <h1 className="heading-1 mb-4 font-lora text-4xl md:text-5xl lg:text-6xl text-[#6B4F2B] drop-shadow-xl">Know what to buy. Know when to buy. Eat better every day.</h1>
+            <h1 className="heading-1 mb-4 font-lora text-4xl md:text-5xl lg:text-6xl text-[#6B4F2B] drop-shadow-xl">Track food prices. Stay ahead. Chop wisely!</h1>
             <p className="text-lg md:text-2xl font-inter text-[#4E342E] mb-8 max-w-2xl mx-auto font-medium drop-shadow-sm">Now powered by advanced AI (LLM) for smarter, context-aware answers. Real-time food prices across Nigeria—plan smarter, save more, and get personalized insights.</p>
             <button className="btn text-xl mt-6 font-inter shadow-xl" style={{ minWidth: 220 }} onClick={() => scrollToSection(chatSectionRef)} aria-label="Open chat">Find Your Best Price</button>
           </div>

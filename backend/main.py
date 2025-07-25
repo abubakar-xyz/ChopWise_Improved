@@ -142,6 +142,12 @@ async def query_groq(messages, context):
             reply = data['choices'][0]['message']['content']
             return reply
         except Exception as e:
+            logging.error(f"Groq API error: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                try:
+                    logging.error(f"Groq API response: {e.response.text}")
+                except Exception:
+                    pass
             return "Sorry, I couldn't reach my LLM brain right now. Please try again later! 😔"
 
 # --- Async Chat Endpoint ---

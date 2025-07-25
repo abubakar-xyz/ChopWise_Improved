@@ -115,8 +115,13 @@ def health():
 # ─── Groq LLM Integration ─────────────────────────────────────────────────────
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 GROQ_MODEL = "llama-3-70b-8192"  # Best for conversational tasks
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")  # Get API key from environment variable
 
 async def query_groq(messages, context):
+    if not GROQ_API_KEY:
+        logging.error("GROQ_API_KEY environment variable not set")
+        return "Sorry, I'm not properly configured yet. Please make sure the GROQ_API_KEY is set. 🔑"
+
     prompt = (
         "You are ChopWise, a super-friendly Nigerian food price assistant. "
         "Always use emojis, be helpful, and handle follow-ups, clarifications, and corrections. "
@@ -134,9 +139,13 @@ async def query_groq(messages, context):
         "temperature": 0.7,
         "max_tokens": 512
     }
+    headers = {
+        "Authorization": f"Bearer {GROQ_API_KEY}",
+        "Content-Type": "application/json"
+    }
     async with httpx.AsyncClient(timeout=15) as client:
         try:
-            resp = await client.post(GROQ_API_URL, json=payload)
+            resp = await client.post(GROQ_API_URL, json=payload, headers=headers)
             resp.raise_for_status()
             data = resp.json()
             reply = data['choices'][0]['message']['content']

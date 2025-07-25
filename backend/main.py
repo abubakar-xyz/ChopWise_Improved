@@ -1,5 +1,104 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi imp# ─── App & CORS Setup ──────────────────────────────────────────────────────────
+app = FastAPI(
+    title="ChopWise API",
+    descr# ─── Root and Health Check Endpoints ─────────────────────────────────────────────
+@app.get("/")
+async def root():
+    """Root endpoint that returns API information"""
+    return HTMLResponse(content="""
+        <html>
+            <head><title>ChopWise API</title></head>
+            <body>
+                <h1>Welcome to ChopWise API 🥘</h1>
+                <p>This is the API backend for the ChopWise Nigerian food price assistant.</p>
+                <p>For health status, check <a href="/health">/health</a></p>
+                <p>The chat endpoint is at <code>/chat</code></p>
+            </body>
+        </html>
+    """)
+
+@app.get("/health")
+async def health():
+    """Health check endpoint that verifies all components are working"""
+    try:
+        if model is None or df_raw is None:
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "status": "error",
+                    "message": "Application is still initializing"
+                }
+            )
+        
+        # Check if Groq API key is configured
+        if not GROQ_API_KEY:
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "status": "error",
+                    "message": "GROQ_API_KEY is not configured"
+                }
+            )
+        
+        return {
+            "status": "ok",
+            "components": {
+                "model": "loaded",
+                "database": "connected",
+                "llm": "configured"
+            }
+        }
+    except Exception as e:
+        logger.error(f"Health check failed: {str(e)}")
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "error",
+                "message": str(e)
+            }
+        )
+
+# ─── Groq LLM Integration ─────────────────────────────────────────────────────="Nigerian food price assistant API",
+    version="1.0.0"
+)
+
+# Allow your Netlify site (or "*" during dev) to call these endpoints
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://chopwise.netlify.app"],  # Production frontend URL
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Global variables for loaded data
+model = None
+feature_cols = None
+df_raw = None
+foods = []
+states = []
+lgas = []
+outlets = []
+by_food = {}
+by_state = {}
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize data and models on startup"""
+    global model, feature_cols, df_raw, foods, states, lgas, outlets, by_food, by_state
+    
+    try:
+        # Make sure relative paths resolve
+        os.chdir(os.path.dirname(__file__))
+        
+        # Load model and features
+        logging.info("Loading model and features...")
+        model = joblib.load("model.pkl")
+        feature_cols = joblib.load("features.pkl")
+        
+        # Load dataset
+        logging.info("Loading dataset...")
+        df_raw = pd.read_csv(fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import pandas as pd
 import joblib
@@ -114,12 +213,13 @@ def health():
 
 # ─── Groq LLM Integration ─────────────────────────────────────────────────────
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_MODEL = "llama-3-70b-8192"  # Best for conversational tasks
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY")  # Get API key from environment variable
+GROQ_MODEL = "mixtral-8x7b-32768"  # Switched to Mixtral model for better performance
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 
 async def query_groq(messages, context):
+    """Query the Groq LLM API with proper error handling"""
     if not GROQ_API_KEY:
-        logging.error("GROQ_API_KEY environment variable not set")
+        logger.error("GROQ_API_KEY environment variable not set")
         return "Sorry, I'm not properly configured yet. Please make sure the GROQ_API_KEY is set. 🔑"
 
     prompt = (
@@ -130,6 +230,7 @@ async def query_groq(messages, context):
         "Chat History:\n" + "\n".join([f"User: {m['user']}\nBot: {m['bot']}" for m in messages if m['user'] or m['bot']]) + "\n\n"
         "Respond in a personalized, friendly, and helpful way."
     )
+    
     payload = {
         "model": GROQ_MODEL,
         "messages": [
@@ -137,27 +238,56 @@ async def query_groq(messages, context):
             {"role": "user", "content": messages[-1]['user'] if messages else ""}
         ],
         "temperature": 0.7,
-        "max_tokens": 512
+        "max_tokens": 1024,  # Increased for more detailed responses
+        "top_p": 0.9,
+        "stream": False
     }
+    
     headers = {
         "Authorization": f"Bearer {GROQ_API_KEY}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Accept": "application/json"
     }
-    async with httpx.AsyncClient(timeout=15) as client:
-        try:
+    
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:  # Increased timeout
             resp = await client.post(GROQ_API_URL, json=payload, headers=headers)
+            
+            # Log the full response for debugging
+            logger.info(f"Groq API Status: {resp.status_code}")
+            logger.info(f"Groq API Headers: {dict(resp.headers)}")
+            
+            try:
+                logger.info(f"Groq API Response: {resp.text}")
+            except Exception:
+                pass
+            
             resp.raise_for_status()
             data = resp.json()
+            
+            if "choices" not in data or not data["choices"]:
+                logger.error(f"Unexpected Groq API response format: {data}")
+                return "Sorry, I received an unexpected response format. Please try again! 🤔"
+                
             reply = data['choices'][0]['message']['content']
             return reply
-        except Exception as e:
-            logging.error(f"Groq API error: {e}")
-            if hasattr(e, 'response') and e.response is not None:
-                try:
-                    logging.error(f"Groq API response: {e.response.text}")
-                except Exception:
-                    pass
-            return "Sorry, I couldn't reach my LLM brain right now. Please try again later! 😔"
+            
+    except httpx.TimeoutException:
+        logger.error("Groq API timeout")
+        return "Sorry, the request timed out. Please try again! ⏱️"
+        
+    except httpx.RequestError as e:
+        logger.error(f"Groq API request error: {e}")
+        return "Sorry, there was a network error. Please check your connection and try again! 🌐"
+        
+    except Exception as e:
+        logger.error(f"Groq API error: {e}")
+        if hasattr(e, 'response') and e.response is not None:
+            try:
+                logger.error(f"Groq API error response: {e.response.text}")
+            except Exception:
+                pass
+        return "Sorry, I couldn't process your request right now. Please try again later! 😔"
 
 # --- Async Chat Endpoint ---
 from fastapi import Request as FastAPIRequest, Cookie

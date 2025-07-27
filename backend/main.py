@@ -33,6 +33,10 @@ if not GROQ_API_KEY:
     if not os.getenv("TESTING", "").lower() == "true":
         raise ValueError("GROQ_API_KEY environment variable is required")
 
+if not GROQ_API_KEY and not os.getenv("TESTING", "").lower() == "true":
+    logger.error("GROQ_API_KEY not found in environment variables. API calls will fail!")
+    raise ValueError("GROQ_API_KEY environment variable is required")
+
 # Groq API configuration
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 GROQ_MODEL = "mixtral-8x7b-32768"
@@ -96,23 +100,11 @@ async def health():
     try:
         # Check initialization status
         if model is None or df_raw is None:
-            return JSONResponse(
-                status_code=503,
-                content={
-                    "status": "error",
-                    "message": "Application is still initializing"
-                }
-            )
+            return JSONResponse(status_code=503, content={"status": "error", "message": "Application is still initializing"})
         
         # Check Groq API key
         if not GROQ_API_KEY:
-            return JSONResponse(
-                status_code=503,
-                content={
-                    "status": "error",
-                    "message": "GROQ_API_KEY is not configured"
-                }
-            )
+            return JSONResponse(status_code=503, content={"status": "error", "message": "GROQ_API_KEY is not configured"})
         
         # Test Groq API connectivity
         try:
@@ -125,13 +117,7 @@ async def health():
                 response.raise_for_status()
         except Exception as e:
             logger.error(f"Groq API connectivity test failed: {str(e)}")
-            return JSONResponse(
-                status_code=503,
-                content={
-                    "status": "error",
-                    "message": "Unable to connect to Groq API"
-                }
-            )
+            return JSONResponse(status_code=503, content={"status": "error", "message": "Unable to connect to Groq API"})
         
         return {
             "status": "ok",
@@ -143,20 +129,24 @@ async def health():
         }
     except Exception as e:
         logger.error(f"Health check failed: {str(e)}")
-        return JSONResponse(
-            status_code=503,
-            content={
-                "status": "error",
-                "message": str(e)
-            }
-        )
-            status_code=503,
-            content={
+        return JSONResponse(status_code=503, content={"status": "error", "message": str(e)})
 
 # --- Rate Limiting ---
 RATE_LIMIT = int(os.getenv("RATE_LIMIT", "100"))  # requests per minute
 rate_limiter = defaultdict(list)  # {ip: [timestamps]}
-        )
+
+def is_rate_limited(ip: str) -> bool:
+    """Check if an IP is rate limited."""
+    now = time.time()
+    window = 60  # seconds
+    timestamps = rate_limiter[ip]
+    # Remove timestamps outside the window
+    rate_limiter[ip] = [t for t in timestamps if now - t < window]
+    if len(rate_limiter[ip]) >= RATE_LIMIT:
+        return True
+    rate_limiter[ip].append(now)
+    return False
+
 def is_rate_limited(ip: str) -> bool:
     now = time.time()
     window = 60  # seconds
@@ -457,12 +447,20 @@ async def chat(request: ChatRequest, session_id: Optional[str] = Cookie(None)):
         )
     except Exception as e:
         logger.error(f"Chat error: {str(e)}")
+
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "error",
+                "message": str(e)
+            }
+        )
         return JSONResponse(
             status_code=500,
             content={"error": "Sorry, I couldn't reach my LLM brain right now. Please try again later! 😔"},
             headers={"set-cookie": f"session_id={current_session_id}; Path=/; SameSite=Lax"}
         )
-)
+
 
 # Allow your Netlify site (or "*" during dev) to call these endpoints
 app.add_middleware(

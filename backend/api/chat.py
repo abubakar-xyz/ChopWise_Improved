@@ -1,3 +1,11 @@
+@router.get("/chat/diagnostics")
+async def chat_diagnostics():
+    """Diagnostic endpoint to check model, features, and GROQ_API_KEY status."""
+    diagnostics = {}
+    diagnostics["model_loaded"] = model is not None
+    diagnostics["features_loaded"] = features is not None
+    diagnostics["groq_api_key_set"] = bool(os.getenv("GROQ_API_KEY"))
+    return diagnostics
 import logging
 import uuid
 import os
@@ -68,18 +76,15 @@ async def chat_endpoint(request: ChatRequest, session_id: Optional[str] = Cookie
         # --- Model-based logic: Example for price prediction ---
         model_prediction = None
         try:
-            # If the last user message contains a price query, attempt prediction
             last_user_msg = next((m for m in reversed(user_messages) if m.get("role") == "user"), None)
             if last_user_msg and model and features:
-                # Example: Expecting structured input for prediction
                 user_data = last_user_msg.get("data")
                 if user_data:
-                    # user_data should be a dict with feature keys
                     input_df = pd.DataFrame([user_data])
                     input_df = input_df.reindex(columns=features, fill_value=0)
                     model_prediction = model.predict(input_df)[0]
         except Exception as e:
-            logger.warning(f"Model prediction failed: {e}")
+            logger.warning(f"Model prediction failed: {e}", exc_info=True)
             model_prediction = None
 
         # --- LLM logic ---
@@ -91,7 +96,8 @@ async def chat_endpoint(request: ChatRequest, session_id: Optional[str] = Cookie
         }
         if model_prediction is not None:
             response["model_prediction"] = model_prediction
+        logger.info(f"/chat response: {response}")
         return JSONResponse(response)
     except Exception as e:
         logger.error(f"/chat endpoint error: {e}", exc_info=True)
-        return JSONResponse({"detail": "Internal server error"}, status_code=500)
+        return JSONResponse({"detail": f"Internal server error: {e}"}, status_code=500)

@@ -1,9 +1,10 @@
+
 import Head from 'next/head';
 import { useRef, useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { BACKEND_URL } from '../utils/config';
 import useChatbotInfo from '../utils/useChatbotInfo';
-import { FaUtensils, FaMapMarkerAlt, FaRobot, FaInfoCircle } from 'react-icons/fa';
+import { FaUtensils, FaMapMarkerAlt, FaRobot, FaInfoCircle, FaArrowUp, FaChevronDown } from 'react-icons/fa';
 
 export default function Home() {
   // Chatbot state
@@ -21,16 +22,52 @@ export default function Home() {
   const chatSectionRef = useRef(null);
   const insightsSectionRef = useRef(null);
   const inputRef = useRef(null);
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  const [showScrollDown, setShowScrollDown] = useState(true);
 
   // Scroll to top on initial load
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'auto' });
+    if (inputRef.current) inputRef.current.blur();
+  }, []);
+
+  // Auto-focus chat input on chat section load or after sending
+  useEffect(() => {
+    if (window.location.hash === '#chat' && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, []);
+
+  // Keyboard shortcuts: / to focus, Esc to blur
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (e.key === '/' && document.activeElement !== inputRef.current) {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+      if (e.key === 'Escape' && document.activeElement === inputRef.current) {
+        inputRef.current?.blur();
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
   }, []);
 
   // Scroll to bottom on new message
   useEffect(() => {
     if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (inputRef.current) inputRef.current.focus();
   }, [messages, loading]);
+
+  // Show/hide back-to-top button
+  useEffect(() => {
+    const onScroll = () => {
+      setShowBackToTop(window.scrollY > 300);
+      setShowScrollDown(window.scrollY < 100);
+    };
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   // Tableau embed (responsive)
   useEffect(() => {
@@ -118,7 +155,7 @@ export default function Home() {
     } finally {
       setLoading(false);
       setInput("");
-      if (inputRef.current) inputRef.current.focus();
+      setTimeout(() => inputRef.current?.focus(), 100);
     }
   }
 
@@ -139,9 +176,24 @@ export default function Home() {
         </nav>
       </header>
 
-      <main className="pt-32">
+      <main className="pt-32 relative">
         {/* Hero Section */}
         <section className="hero bg-gradient-to-br from-[#F6E7D7] via-[#E8A46B] to-[#6B4F2B] relative overflow-hidden">
+          {/* Scroll down indicator */}
+          <AnimatePresence>
+            {showScrollDown && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                transition={{ duration: 0.6 }}
+                className="absolute left-1/2 bottom-6 -translate-x-1/2 z-20 flex flex-col items-center pointer-events-none"
+              >
+                <span className="text-[#6B4F2B] animate-bounce text-3xl"><FaChevronDown /></span>
+                <span className="text-xs text-[#6B4F2B] mt-1">Scroll down</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
           <div className="container z-10 relative">
             <h1 className="heading-1 mb-4 font-lora text-4xl md:text-5xl lg:text-6xl text-[#6B4F2B] drop-shadow-xl">Track food prices. Stay ahead. Chop wisely!</h1>
             <p className="text-lg md:text-2xl font-inter text-[#4E342E] mb-8 max-w-2xl mx-auto font-medium drop-shadow-sm">Now powered by a <b>private, local AI (mini-LLM)</b> trained on real Nigerian food price data. Get fast, reliable, and personalized answers—no external APIs, no cloud, just privacy and accuracy.</p>
@@ -202,17 +254,25 @@ export default function Home() {
                 {messages.length === 0 && (
                   <p className="text-center text-[#4E342E] font-inter text-lg py-8">Ask me anything about food prices in Nigeria!<br/><span className='text-base text-[#6B4F2B] font-semibold'>Now powered by a secure, local AI model for fast, private, and reliable answers. 🧠🤖</span></p>
                 )}
-                {messages.map((msg, idx) => (
-                  <div key={idx} className={`mb-4 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}
-                    aria-label={msg.role === 'user' ? 'You' : 'ChopWise AI'}
-                    role="region"
-                  >
-                    <div className={`inline-block px-4 py-2 rounded-3xl max-w-xs shadow-md focus:outline-none focus:ring-2 focus:ring-brand-tan transition-all animate-fade-in-up ${msg.role === 'user' ? 'bg-[#E8A46B] text-[#6B4F2B] border border-[#6B4F2B]' : 'bg-[#6B4F2B] text-[#FFF7ED] border border-[#E8A46B]'} `} tabIndex={0} aria-live="polite">
-                      <span className="sr-only font-bold">{msg.role === 'user' ? 'You: ' : 'ChopWise AI: '}</span>
-                      {msg.text}
-                    </div>
-                  </div>
-                ))}
+                <AnimatePresence initial={false}>
+                  {messages.map((msg, idx) => (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.35 }}
+                      className={`mb-4 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}
+                      aria-label={msg.role === 'user' ? 'You' : 'ChopWise AI'}
+                      role="region"
+                    >
+                      <div className={`inline-block px-4 py-2 rounded-3xl max-w-xs shadow-md focus:outline-none focus:ring-2 focus:ring-brand-tan transition-all ${msg.role === 'user' ? 'bg-[#E8A46B] text-[#6B4F2B] border border-[#6B4F2B]' : 'bg-[#6B4F2B] text-[#FFF7ED] border border-[#E8A46B]'} `} tabIndex={0} aria-live="polite">
+                        <span className="sr-only font-bold">{msg.role === 'user' ? 'You: ' : 'ChopWise AI: '}</span>
+                        {msg.text}
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
                 {loading && (
                   <div className="flex justify-center mb-4" aria-live="assertive" aria-busy="true">
                     <div className="loader animate-spin" aria-label="Loading response" />
@@ -223,7 +283,7 @@ export default function Home() {
               </div>
 
               {/* User Input Form */}
-              <form onSubmit={handleChatSubmit} className="flex gap-4" aria-label="Chat input form">
+              <form onSubmit={handleChatSubmit} className="flex gap-4 sticky bottom-0 bg-white/80 py-2 z-20" aria-label="Chat input form">
                 <input
                   ref={inputRef}
                   type="text"
@@ -234,6 +294,7 @@ export default function Home() {
                   aria-label="Type your message to the chatbot"
                   aria-describedby="chatbot-help-text"
                   disabled={loading}
+                  autoComplete="on"
                 />
                 <button
                   type="submit"
@@ -248,7 +309,37 @@ export default function Home() {
                   )}
                 </button>
               </form>
-              {error && <p className="mt-4 text-red-500 text-center">{error}</p>}
+              <AnimatePresence>
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.4 }}
+                    className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-red-500 text-white px-6 py-3 rounded-2xl shadow-lg flex items-center gap-3"
+                    role="alert"
+                  >
+                    <span>{error}</span>
+                    <button onClick={() => setError("")} className="ml-2 text-lg font-bold focus:outline-none" aria-label="Dismiss error">&times;</button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+      {/* Back to Top Button */}
+      <AnimatePresence>
+        {showBackToTop && (
+          <motion.button
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 40 }}
+            transition={{ duration: 0.4 }}
+            className="fixed bottom-8 right-6 z-50 bg-[#E8A46B] text-[#6B4F2B] p-3 rounded-full shadow-lg hover:bg-[#6B4F2B] hover:text-[#FFF7ED] focus:outline-none focus:ring-2 focus:ring-brand-tan"
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            aria-label="Back to top"
+          >
+            <FaArrowUp className="text-2xl" />
+          </motion.button>
+        )}
+      </AnimatePresence>
             </div>
           </div>
         </section>

@@ -54,16 +54,44 @@ async def call_llm(messages: List[Dict[str, Any]]) -> str:
 
 @router.post("/chat")
 async def chat_endpoint(request: ChatRequest, session_id: Optional[str] = Cookie(None)):
+    """
+    Enhanced /chat endpoint:
+    - Accepts a list of chat messages and optional session_id.
+    - If the last user message contains structured data for price prediction, returns a model prediction alongside the LLM reply.
+    - All errors are logged; endpoint is resilient to model or LLM failures.
+    - Response includes both the LLM reply and (if available) the model prediction.
+    """
     sid = session_id or request.session_id or str(uuid.uuid4())
     user_messages = request.messages
     logger.info(f"Received chat request: session_id={sid}, messages={user_messages}")
     try:
-        # Optionally: Add model-based logic here (e.g., price prediction)
+        # --- Model-based logic: Example for price prediction ---
+        model_prediction = None
+        try:
+            # If the last user message contains a price query, attempt prediction
+            last_user_msg = next((m for m in reversed(user_messages) if m.get("role") == "user"), None)
+            if last_user_msg and model and features:
+                # Example: Expecting structured input for prediction
+                user_data = last_user_msg.get("data")
+                if user_data:
+                    # user_data should be a dict with feature keys
+                    input_df = pd.DataFrame([user_data])
+                    input_df = input_df.reindex(columns=features, fill_value=0)
+                    model_prediction = model.predict(input_df)[0]
+        except Exception as e:
+            logger.warning(f"Model prediction failed: {e}")
+            model_prediction = None
+
+        # --- LLM logic ---
         llm_reply = await call_llm(user_messages)
-        return JSONResponse({
+
+        response = {
             "reply": llm_reply,
             "session_id": sid
-        })
+        }
+        if model_prediction is not None:
+            response["model_prediction"] = model_prediction
+        return JSONResponse(response)
     except Exception as e:
         logger.error(f"/chat endpoint error: {e}", exc_info=True)
         return JSONResponse({"detail": "Internal server error"}, status_code=500)

@@ -1,11 +1,4 @@
-@router.get("/chat/diagnostics")
-async def chat_diagnostics():
-    """Diagnostic endpoint to check model, features, and GROQ_API_KEY status."""
-    diagnostics = {}
-    diagnostics["model_loaded"] = model is not None
-    diagnostics["features_loaded"] = features is not None
-    diagnostics["groq_api_key_set"] = bool(os.getenv("GROQ_API_KEY"))
-    return diagnostics
+
 import logging
 import uuid
 import os
@@ -19,6 +12,15 @@ from typing import Optional, List, Dict, Any
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+@router.get("/chat/diagnostics")
+async def chat_diagnostics():
+    """Diagnostic endpoint to check model, features, and GROQ_API_KEY status."""
+    diagnostics = {}
+    diagnostics["model_loaded"] = model is not None
+    diagnostics["features_loaded"] = features is not None
+    diagnostics["groq_api_key_set"] = bool(os.getenv("GROQ_API_KEY"))
+    return diagnostics
 
 # Load model and features at startup
 MODEL_PATH = os.path.join(os.path.dirname(__file__), '..', 'model.pkl')

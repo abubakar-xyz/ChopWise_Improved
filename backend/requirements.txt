@@ -6,6 +6,7 @@ pydantic
 starlette
 joblib
 transformers==4.41.2
+tokenizers==0.19.1
 torch>=2.0.0
 python-dotenv
 sentence-transformers

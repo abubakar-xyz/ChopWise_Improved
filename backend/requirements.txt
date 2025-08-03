@@ -6,9 +6,11 @@ pydantic
 starlette
 joblib
 transformers==4.40.2
-tokenizers==0.13.3
+tokenizers>=0.19,<0.20
 torch>=2.0.0
 python-dotenv
 sentence-transformers
 httpx
- 
+fuzzywuzzy
+python-Levenshtein
+google-generativeai

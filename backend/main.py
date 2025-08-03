@@ -1,72 +1,82 @@
 """
 ChopWise Food Price Assistant API - Main Application Entry Point
- Modular FastAPI app with CORS, GZip, logging, and robust error handling
- Imports routers for chat and info endpoints
- Loads environment variables for configuration
+
+This module sets up the FastAPI application, including middleware, routers, 
+and exception handling. It serves as the central point for configuring and 
+launching the API.
 """
 
 import logging
+import os
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from starlette.responses import JSONResponse
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
-import os
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
+# Load environment variables from a .env file
 load_dotenv()
 
-# Logging configuration (INFO level for production)
+# Configure logging to provide informative output
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Import routers (modular endpoints)
+# Import API routers for different functionalities
 from api.chat import router as chat_router
 from api.info import router as info_router
 
 def create_app() -> FastAPI:
     """
-    Create and configure FastAPI app instance with all middleware, routers, and error handling.
-    """
-    app = FastAPI(title="ChopWise Food Price Assistant API", version="1.0.0")
+    Creates and configures the FastAPI application instance.
 
-    # Enable CORS for all origins (adjust for production if needed)
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+    This function initializes the FastAPI app and sets up essential 
+    middleware for CORS and GZip compression. It also includes the API 
+    routers and defines global exception handlers for robust error management.
+    """
+    # Initialize the FastAPI application
+    app = FastAPI(
+        title="ChopWise Food Price Assistant API",
+        description="An intelligent API for food price information and predictions in Nigeria.",
+        version="1.2.0"
     )
 
-    # Enable GZip compression for large responses
+    # Configure CORS to allow requests from all origins
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],  # Restrict this in production for security
+        allow_credentials=True,
+        allow_methods=["GET", "POST"], # Specify allowed methods
+        allow_headers=["Content-Type", "Authorization"], # Specify allowed headers
+    )
+
+    # Add GZip middleware to compress large responses
     app.add_middleware(GZipMiddleware, minimum_size=1000)
 
-    # Register API routers
-    app.include_router(chat_router, prefix="/chat", tags=["chat"])
-    app.include_router(info_router, prefix="/info", tags=["info"])
+    # Include the chat and info routers with their respective prefixes
+    app.include_router(chat_router, prefix="/api", tags=["Chat"])
+    app.include_router(info_router, prefix="/api", tags=["Info"])
 
-    # Root endpoint
-    @app.get("/", tags=["root"])
+    # Define a root endpoint for basic API information
+    @app.get("/", tags=["Root"])
     async def root():
-        return {"message": "Welcome to ChopWise Food Price Assistant API!"}
+        return {"message": "Welcome to the ChopWise API!"}
 
-    # Health check endpoint
-    @app.get("/health", tags=["health"])
-    async def health():
+    # Define a health check endpoint for monitoring
+    @app.get("/health", tags=["Health"])
+    async def health_check():
         return {"status": "ok"}
 
-    # Global exception handler for robust error reporting
+    # Global exception handler to catch unhandled errors
     @app.exception_handler(Exception)
-    async def global_exception_handler(request: Request, exc: Exception):
-        logger.error(f"Unhandled error: {exc}", exc_info=True)
+    async def unhandled_exception_handler(request: Request, exc: Exception):
+        logger.error(f"Unhandled exception: {exc}", exc_info=True)
         return JSONResponse(
             status_code=HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"detail": "Internal server error"},
+            content={"detail": "An unexpected internal server error occurred."},
         )
 
     return app
 
-# Create app instance for ASGI server
+# Create the FastAPI app instance for the ASGI server
 app = create_app()

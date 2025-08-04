@@ -10,5 +10,8 @@ source venv/bin/activate
 # Upgrade pip
 pip install --upgrade pip
 
-# Install dependencies
-pip install -r requirements.txt
+# Create a local cache directory for pip
+mkdir -p .pip_cache
+
+# Install dependencies using the local cache
+pip install --cache-dir .pip_cache -r requirements.txt

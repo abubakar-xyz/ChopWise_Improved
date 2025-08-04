@@ -3,7 +3,10 @@ from sklearn.ensemble import RandomForestRegressor
 import joblib
 import os
 
-def load_data(path='FoodPrices_Dataset.csv'):
+# Get the absolute path of the current script
+script_dir = os.path.dirname(os.path.abspath(__file__))
+
+def load_data(path=os.path.join(script_dir, 'FoodPrices_Dataset.csv')):
     df = pd.read_csv(path, parse_dates=['Date'], dayfirst=True)
     df['day']   = df['Date'].dt.day
     df['month'] = df['Date'].dt.month
@@ -16,8 +19,6 @@ def load_data(path='FoodPrices_Dataset.csv'):
     return df
 
 if __name__ == '__main__':
-    os.chdir(os.path.dirname(__file__))
-
     df = load_data()
     y = df['UPRICE']
     X = df.drop(columns=['UPRICE', 'Date'])
@@ -32,9 +33,9 @@ if __name__ == '__main__':
     model.fit(X, y)
 
     # Compress and save
-    joblib.dump(model, 'model.pkl', compress=3)
+    joblib.dump(model, os.path.join(script_dir, 'model.pkl'), compress=3)
     # Also save feature list
-    joblib.dump(X.columns.tolist(), 'features.pkl', compress=3)
+    joblib.dump(X.columns.tolist(), os.path.join(script_dir, 'features.pkl'), compress=3)
 
     print('✅ Trained & saved compressed model (30 trees, depth≤10).')
 

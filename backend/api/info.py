@@ -6,7 +6,9 @@ import os
 
 router = APIRouter()
 
-DATA_PATH = os.path.join(os.path.dirname(__file__), '..', 'FoodPrices_Dataset.csv')
+# Get the absolute path of the current script
+script_dir = os.path.dirname(os.path.abspath(__file__))
+DATA_PATH = os.path.join(script_dir, '..', 'FoodPrices_Dataset.csv')
 
 def get_info():
     df = pd.read_csv(DATA_PATH, parse_dates=['Date'], dayfirst=True)

@@ -44,7 +44,7 @@ def create_app() -> FastAPI:
     # Configure CORS to allow requests from all origins
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # Restrict this in production for security
+        allow_origins=["https://chopwise-improved.netlify.app"],  # Restrict this in production for security
         allow_credentials=True,
         allow_methods=["GET", "POST"], # Specify allowed methods
         allow_headers=["Content-Type", "Authorization"], # Specify allowed headers

@@ -39,19 +39,33 @@ def process_chat_message(session_id: str, messages: List[Dict[str, str]]) -> str
     
     # 3. Retrieve data if necessary (e.g., price prediction)
     retrieved_data = None
-    if intent == "price_query" and entities.get("FOOD") and entities.get("GPE"):
-        try:
-            prediction_data = {
-                "food_item": entities["FOOD"],
-                "lga": entities["GPE"],
-            }
-            retrieved_data = get_price_prediction(prediction_data)
-        except Exception as e:
-            logger.error(f"Price prediction failed: {e}", exc_info=True)
-            return "I couldn't fetch the price for that item. Please ensure the food item and location are correct."
+    if intent == "price_query":
+        if entities.get("FOOD") and entities.get("GPE"):
+            try:
+                prediction_data = {
+                    "food_item": entities["FOOD"],
+                    "lga": entities["GPE"][0] if isinstance(entities["GPE"], list) else entities["GPE"],
+                }
+                retrieved_data = get_price_prediction(prediction_data)
+            except Exception as e:
+                logger.error(f"Price prediction failed: {e}", exc_info=True)
+                return "I couldn't fetch the price for that item. Please ensure the food item and location are correct."
+        else:
+            return "To get a price, please tell me the food item and the location (LGA)."
 
     # 4. Generate a human-like response
-    response = generate_llm_response(intent, entities, retrieved_data)
+    if intent == "comparison_query" and entities.get("FOOD") and isinstance(entities.get("GPE"), list) and len(entities.get("GPE")) > 1:
+        response = get_price_comparison(entities["FOOD"], entities["GPE"])
+    elif intent == "trend_query" and entities.get("FOOD") and entities.get("GPE"):
+        if isinstance(entities["GPE"], list) and len(entities["GPE"]) > 1:
+            first_location = entities["GPE"][0]
+            response = get_price_trend(entities["FOOD"], first_location)
+            response += "\n\nNote: I can only provide a trend for one location at a time."
+        else:
+            location = entities["GPE"][0] if isinstance(entities["GPE"], list) else entities["GPE"]
+            response = get_price_trend(entities["FOOD"], location)
+    else:
+        response = generate_llm_response(intent, entities, retrieved_data)
     
     # 5. Update and store conversation history
     if session_id not in chat_histories:

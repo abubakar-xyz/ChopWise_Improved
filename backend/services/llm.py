@@ -6,6 +6,7 @@ import logging
 import joblib
 import pandas as pd
 from fuzzywuzzy import process
+from functools import lru_cache
 from transformers import pipeline
 
 # --- Configuration ---
@@ -26,8 +27,8 @@ try:
     FOOD_ITEMS = df["Food Item"].unique().tolist()
     LGAS = df["LGA"].unique().tolist()
     
-    # Load transformer pipelines
-    ner_pipeline = pipeline("ner", model="dslim/bert-base-NER", aggregation_strategy="simple")
+    # Load transformer pipelines (using a distilled model for speed)
+    ner_pipeline = pipeline("ner", model="dslim/bert-base-NER-distilled", aggregation_strategy="simple")
     intent_classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
     INTENT_CANDIDATES = ["price_query", "trend_query", "comparison_query", "greeting", "help", "thank_you", "about"]
 
@@ -77,9 +78,10 @@ def extract_entities(text: str) -> dict:
     logger.info(f"Extracted entities: {entities}")
     return entities
 
+@lru_cache(maxsize=128)
 def detect_intent(text: str) -> str:
     """
-    Detects the user's intent from the text.
+    Detects the user's intent from the text, with caching.
     """
     try:
         result = intent_classifier(text, INTENT_CANDIDATES)

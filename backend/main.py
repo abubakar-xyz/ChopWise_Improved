@@ -43,13 +43,14 @@ def create_app() -> FastAPI:
     )
 
     # Configure CORS to allow requests from all origins
-    allowed_origins = os.getenv(
-        "ALLOWED_ORIGINS",
-        "https://chopwise-improved.netlify.app,https://*.netlify.app,https://*.onrender.com,https://localhost:3000,http://localhost:3000",
-    ).split(",")
+    # Prefer regex for wildcards (Netlify previews, Render domains), fallback to explicit list
+    origin_regex = os.getenv(
+        "ALLOWED_ORIGIN_REGEX",
+        r"https://.*\.netlify\.app$|https://.*\.onrender\.com$|http://localhost:3000$|https://localhost:3000$",
+    )
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[o.strip() for o in allowed_origins if o.strip()],
+        allow_origin_regex=origin_regex,
         allow_credentials=True,
         allow_methods=["GET", "POST", "OPTIONS"],
         allow_headers=["Content-Type", "Authorization"],

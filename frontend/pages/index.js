@@ -2,8 +2,7 @@ import Head from 'next/head';
 import { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaPaperPlane, FaRobot, FaChartLine, FaInfoCircle } from 'react-icons/fa';
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://chopwise-improved.onrender.com';
+import config from '../utils/config';
 
 export default function Home() {
   const [input, setInput] = useState("");
@@ -40,13 +39,16 @@ export default function Home() {
       const history = messages.map(msg => ({ user: msg.role === 'user' ? msg.text : '', bot: msg.role === 'bot' ? msg.text : '' }));
       history.push({ user: input, bot: '' });
 
-      const res = await fetch(`${BACKEND_URL}/api/chat`, {
+      const res = await fetch(`${config.NEXT_PUBLIC_BACKEND_URL}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ session_id: sessionId, messages: history.slice(-5) })
       });
 
-      if (!res.ok) throw new Error(`API error: ${res.statusText}`);
+      if (!res.ok) {
+        const body = await res.text().catch(() => '');
+        throw new Error(`API error: ${res.status} ${res.statusText} ${body}`);
+      }
 
       const data = await res.json();
 

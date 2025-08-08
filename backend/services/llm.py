@@ -8,7 +8,7 @@ import pandas as pd
 import os
 from fuzzywuzzy import process
 from functools import lru_cache
-from transformers import pipeline
+from sentence_transformers import SentenceTransformer, util
 
 # --- Configuration ---
 logging.basicConfig(level=logging.INFO)
@@ -32,42 +32,22 @@ try:
     FOOD_ITEMS = df["Food Item"].unique().tolist()
     LGAS = df["LGA"].unique().tolist()
 
-    # Lazy init for HF pipelines to avoid heavy imports during startup/build
-    _NER_PIPELINE = None
-    _INTENT_CLASSIFIER = None
+    # Lazy init for embedder (small, fast model)
+    _EMBEDDER = None
     INTENT_CANDIDATES = [
         "price_query", "trend_query", "comparison_query",
         "greeting", "help", "thank_you", "about"
     ]
 
-    def get_ner_pipeline():
-        global _NER_PIPELINE
-        if _NER_PIPELINE is None:
+    def get_embedder():
+        global _EMBEDDER
+        if _EMBEDDER is None:
             try:
-                _NER_PIPELINE = pipeline(
-                    "ner",
-                    model="dslim/bert-base-NER-distilled",
-                    aggregation_strategy="simple",
-                    trust_remote_code=False,
-                )
+                _EMBEDDER = SentenceTransformer(os.environ.get("SENTENCE_TRANSFORMERS_MODEL", "all-MiniLM-L6-v2"))
             except Exception as e:
-                logger.error(f"Failed to initialize NER pipeline: {e}", exc_info=True)
+                logger.error(f"Failed to initialize sentence embedder: {e}", exc_info=True)
                 raise
-        return _NER_PIPELINE
-
-    def get_intent_classifier():
-        global _INTENT_CLASSIFIER
-        if _INTENT_CLASSIFIER is None:
-            try:
-                _INTENT_CLASSIFIER = pipeline(
-                    "zero-shot-classification",
-                    model="facebook/bart-large-mnli",
-                    trust_remote_code=False,
-                )
-            except Exception as e:
-                logger.error(f"Failed to initialize intent classifier: {e}", exc_info=True)
-                raise
-        return _INTENT_CLASSIFIER
+        return _EMBEDDER
 
 except FileNotFoundError as e:
     logger.error(f"Error loading a critical file: {e}", exc_info=True)
@@ -86,20 +66,18 @@ def extract_entities(text: str) -> dict:
     
     # 1. NER for initial entity extraction
     try:
-        ner_results = get_ner_pipeline()(text)
-        for entity in ner_results:
-            if entity["entity_group"] == "MISC" and not entities["FOOD"]:
-                # Use fuzzy matching to find the closest food item
-                match, score = process.extractOne(entity["word"], FOOD_ITEMS)
-                if score > 80: # Confidence threshold
-                    entities["FOOD"] = match
-            elif entity["entity_group"] == "LOC":
-                # Use fuzzy matching for locations
-                match, score = process.extractOne(entity["word"], LGAS)
-                if score > 80:
-                    entities["GPE"].append(match)
+        # Tokenize text and fuzzy match against known lists
+        tokens = [t.strip(",.?! ") for t in text.split() if t.strip()]
+        for tok in tokens:
+            if not entities["FOOD"]:
+                match = process.extractOne(tok, FOOD_ITEMS)
+                if match and match[1] >= 85:
+                    entities["FOOD"] = match[0]
+            match = process.extractOne(tok, LGAS)
+            if match and match[1] >= 88 and match[0] not in entities["GPE"]:
+                entities["GPE"].append(match[0])
     except Exception as e:
-        logger.error(f"NER processing failed: {e}", exc_info=True)
+        logger.error(f"Entity extraction failed: {e}", exc_info=True)
 
     # 2. Fallback to keyword search if NER fails
     if not entities["FOOD"]:
@@ -121,10 +99,38 @@ def detect_intent(text: str) -> str:
     Detects the user's intent from the text, with caching.
     """
     try:
-        result = get_intent_classifier()(text, INTENT_CANDIDATES)
-        # Return the highest-scoring intent if it meets a confidence threshold
-        if result["scores"][0] > 0.6:
-            return result["labels"][0]
+        # Simple heuristics first for speed
+        low = text.lower()
+        if any(k in low for k in ["compare", "vs", "which is cheaper", "cheapest in"]):
+            return "comparison_query"
+        if any(k in low for k in ["trend", "increase", "decrease", "forecast", "next month", "next week"]):
+            return "trend_query"
+        if any(k in low for k in ["price", "cost", "how much", "naira", "₦"]):
+            return "price_query"
+        if any(k in low for k in ["hello", "hi", "hey"]):
+            return "greeting"
+        if "help" in low:
+            return "help"
+        if any(k in low for k in ["thanks", "thank you"]):
+            return "thank_you"
+
+        # Fallback to embedding similarity for general cases
+        embedder = get_embedder()
+        cand_texts = [
+            "ask price of a food item in a location",
+            "ask about trend or forecast for a food item in a location",
+            "compare prices of a food item across multiple locations",
+            "greeting message",
+            "ask for help or usage",
+            "say thank you",
+            "ask about the assistant",
+        ]
+        text_emb = embedder.encode([text], convert_to_tensor=True)
+        cand_emb = embedder.encode(cand_texts, convert_to_tensor=True)
+        sims = util.cos_sim(text_emb, cand_emb)[0].tolist()
+        best_idx = max(range(len(sims)), key=lambda i: sims[i])
+        if sims[best_idx] >= 0.35:
+            return INTENT_CANDIDATES[best_idx]
     except Exception as e:
         logger.error(f"Intent classification failed: {e}", exc_info=True)
     

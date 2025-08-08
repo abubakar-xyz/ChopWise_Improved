@@ -14,6 +14,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from starlette.responses import JSONResponse
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
 from dotenv import load_dotenv
+from services.llm import extract_entities, detect_intent
 
 # Load environment variables from a .env file
 load_dotenv()
@@ -42,12 +43,16 @@ def create_app() -> FastAPI:
     )
 
     # Configure CORS to allow requests from all origins
+    allowed_origins = os.getenv(
+        "ALLOWED_ORIGINS",
+        "https://chopwise-improved.netlify.app,https://*.netlify.app,https://*.onrender.com,https://localhost:3000,http://localhost:3000",
+    ).split(",")
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["https://chopwise-improved.netlify.app"],  # Restrict this in production for security
+        allow_origins=[o.strip() for o in allowed_origins if o.strip()],
         allow_credentials=True,
-        allow_methods=["GET", "POST"], # Specify allowed methods
-        allow_headers=["Content-Type", "Authorization"], # Specify allowed headers
+        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["Content-Type", "Authorization"],
     )
 
     # Add GZip middleware to compress large responses
@@ -66,6 +71,20 @@ def create_app() -> FastAPI:
     @app.get("/health", tags=["Health"])
     async def health_check():
         return {"status": "ok"}
+
+    @app.get("/health/deep", tags=["Health"])
+    async def deep_health_check():
+        try:
+            # Exercise core components
+            _ = detect_intent("hello")
+            _ = extract_entities("price of rice in Ikeja")
+            return {"status": "ok", "llm": "ready"}
+        except Exception as exc:
+            logger.error(f"Deep health check failed: {exc}", exc_info=True)
+            return JSONResponse(
+                status_code=500,
+                content={"status": "fail", "detail": str(exc)},
+            )
 
     # Global exception handler to catch unhandled errors
     @app.exception_handler(Exception)

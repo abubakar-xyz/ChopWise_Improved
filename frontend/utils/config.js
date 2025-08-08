@@ -1,2 +1,5 @@
-// frontend/utils/config.js
-export const BACKEND_URL = "https://chopwise-improved.onrender.com";
+const config = {
+  NEXT_PUBLIC_BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL,
+};
+
+export default config;

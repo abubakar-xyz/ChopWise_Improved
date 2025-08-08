@@ -17,28 +17,64 @@ logger = logging.getLogger(__name__)
 # Get the absolute path of the current script
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
-# --- Load Models and Data ---
+# --- Load Models and Data (lazy + offline-friendly) ---
 try:
-    # Load the pre-trained model and features
+    # Ensure HF cache dir is writable if provided
+    os.environ.setdefault("HF_HOME", os.path.join("/tmp", "hf"))
+    os.environ.setdefault("TRANSFORMERS_CACHE", os.environ["HF_HOME"])
+
+    # Load tabular ML artifacts
     model = joblib.load(os.path.join(script_dir, "..", "model.pkl"))
     features = joblib.load(os.path.join(script_dir, "..", "features.pkl"))
-    
+
     # Load the dataset for entity matching
     df = pd.read_csv(os.path.join(script_dir, "..", "FoodPrices_Dataset.csv"))
     FOOD_ITEMS = df["Food Item"].unique().tolist()
     LGAS = df["LGA"].unique().tolist()
-    
-    # Load transformer pipelines (using a distilled model for speed)
-    ner_pipeline = pipeline("ner", model="dslim/bert-base-NER-distilled", aggregation_strategy="simple")
-    intent_classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
-    INTENT_CANDIDATES = ["price_query", "trend_query", "comparison_query", "greeting", "help", "thank_you", "about"]
+
+    # Lazy init for HF pipelines to avoid heavy imports during startup/build
+    _NER_PIPELINE = None
+    _INTENT_CLASSIFIER = None
+    INTENT_CANDIDATES = [
+        "price_query", "trend_query", "comparison_query",
+        "greeting", "help", "thank_you", "about"
+    ]
+
+    def get_ner_pipeline():
+        global _NER_PIPELINE
+        if _NER_PIPELINE is None:
+            try:
+                _NER_PIPELINE = pipeline(
+                    "ner",
+                    model="dslim/bert-base-NER-distilled",
+                    aggregation_strategy="simple",
+                    trust_remote_code=False,
+                )
+            except Exception as e:
+                logger.error(f"Failed to initialize NER pipeline: {e}", exc_info=True)
+                raise
+        return _NER_PIPELINE
+
+    def get_intent_classifier():
+        global _INTENT_CLASSIFIER
+        if _INTENT_CLASSIFIER is None:
+            try:
+                _INTENT_CLASSIFIER = pipeline(
+                    "zero-shot-classification",
+                    model="facebook/bart-large-mnli",
+                    trust_remote_code=False,
+                )
+            except Exception as e:
+                logger.error(f"Failed to initialize intent classifier: {e}", exc_info=True)
+                raise
+        return _INTENT_CLASSIFIER
 
 except FileNotFoundError as e:
     logger.error(f"Error loading a critical file: {e}", exc_info=True)
     raise RuntimeError(f"Could not load critical model or data file: {e}") from e
 except Exception as e:
     logger.error(f"An unexpected error occurred during model or data loading: {e}", exc_info=True)
-    raise RuntimeError("An unexpected error occurred during model or data loading.") from e
+    raise RuntimeError(f"An unexpected error occurred during model or data loading: {e}") from e
 
 # --- Core Functions ---
 
@@ -50,7 +86,7 @@ def extract_entities(text: str) -> dict:
     
     # 1. NER for initial entity extraction
     try:
-        ner_results = ner_pipeline(text)
+        ner_results = get_ner_pipeline()(text)
         for entity in ner_results:
             if entity["entity_group"] == "MISC" and not entities["FOOD"]:
                 # Use fuzzy matching to find the closest food item
@@ -85,7 +121,7 @@ def detect_intent(text: str) -> str:
     Detects the user's intent from the text, with caching.
     """
     try:
-        result = intent_classifier(text, INTENT_CANDIDATES)
+        result = get_intent_classifier()(text, INTENT_CANDIDATES)
         # Return the highest-scoring intent if it meets a confidence threshold
         if result["scores"][0] > 0.6:
             return result["labels"][0]
@@ -142,7 +178,10 @@ def generate_response(intent: str, entities: dict, retrieved_data: dict = None) 
             return f"To get a price for {food or 'a food item'}, please specify a location (LGA). For {location or 'a location'}, please specify a food item."
         
         if retrieved_data:
-            return f"The estimated price of {retrieved_data['food_item']} in {retrieved_data['lga']} is â‚¦{retrieved_data['predicted_price']:.2f}. The forecast for next month is â‚¦{retrieved_data['forecast_price']:.2f}."
+            return (
+                f"The estimated price of {retrieved_data['food_item']} in {retrieved_data['lga']} is ₦{retrieved_data['predicted_price']:.2f}. "
+                f"The forecast for next month is ₦{retrieved_data['forecast_price']:.2f}."
+            )
         else:
             return "I couldn't fetch the price. Please ensure the food item and location are correct."
 
@@ -198,7 +237,7 @@ def get_price_comparison(food_item: str, locations: list) -> str:
     response = f"Here is the price comparison for {food_item}:\n"
     for location, price in prices.items():
         if isinstance(price, float):
-            response += f"- {location}: â‚¦{price:.2f}\n"
+            response += f"- {location}: ₦{price:.2f}\n"
         else:
             response += f"- {location}: {price}\n"
 
@@ -231,6 +270,6 @@ def get_price_trend(food_item: str, location: str) -> str:
     response = f"The price trend for {food_item} in {location} over the last 3 months is {trend}.\n"
     response += "Here are the average prices:\n"
     for date, price in prices.items():
-        response += f"- {date.strftime("%B %Y")}: â‚¦{price:.2f}\n"
+        response += f"- {date.strftime('%B %Y')}: ₦{price:.2f}\n"
 
     return response

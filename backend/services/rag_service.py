@@ -13,6 +13,8 @@ from services.llm import (
     detect_intent,
     get_price_prediction,
     generate_response as generate_llm_response,
+    get_price_comparison,
+    get_price_trend,
 )
 
 logging.basicConfig(level=logging.INFO)

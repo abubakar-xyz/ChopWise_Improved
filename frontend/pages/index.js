@@ -3,7 +3,7 @@ import { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaPaperPlane, FaRobot, FaChartLine, FaInfoCircle } from 'react-icons/fa';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://chopwise-improved.onrender.com';
 
 export default function Home() {
   const [input, setInput] = useState("");

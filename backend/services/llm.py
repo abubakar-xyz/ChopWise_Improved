@@ -5,6 +5,7 @@ intent detection, response generation, and price prediction.
 import logging
 import joblib
 import pandas as pd
+import os
 from fuzzywuzzy import process
 from functools import lru_cache
 from transformers import pipeline

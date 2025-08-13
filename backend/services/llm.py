@@ -8,7 +8,11 @@ import pandas as pd
 import os
 from fuzzywuzzy import process
 from functools import lru_cache
-from sentence_transformers import SentenceTransformer, util
+try:
+    from sentence_transformers import SentenceTransformer, util  # type: ignore
+except Exception:  # pragma: no cover
+    SentenceTransformer = None  # type: ignore
+    util = None  # type: ignore
 
 # --- Configuration ---
 logging.basicConfig(level=logging.INFO)
@@ -41,7 +45,7 @@ try:
 
     def get_embedder():
         global _EMBEDDER
-        if _EMBEDDER is None:
+        if _EMBEDDER is None and SentenceTransformer is not None:
             try:
                 _EMBEDDER = SentenceTransformer(os.environ.get("SENTENCE_TRANSFORMERS_MODEL", "all-MiniLM-L6-v2"))
             except Exception as e:
@@ -116,21 +120,22 @@ def detect_intent(text: str) -> str:
 
         # Fallback to embedding similarity for general cases
         embedder = get_embedder()
-        cand_texts = [
-            "ask price of a food item in a location",
-            "ask about trend or forecast for a food item in a location",
-            "compare prices of a food item across multiple locations",
-            "greeting message",
-            "ask for help or usage",
-            "say thank you",
-            "ask about the assistant",
-        ]
-        text_emb = embedder.encode([text], convert_to_tensor=True)
-        cand_emb = embedder.encode(cand_texts, convert_to_tensor=True)
-        sims = util.cos_sim(text_emb, cand_emb)[0].tolist()
-        best_idx = max(range(len(sims)), key=lambda i: sims[i])
-        if sims[best_idx] >= 0.35:
-            return INTENT_CANDIDATES[best_idx]
+        if embedder and util:
+            cand_texts = [
+                "ask price of a food item in a location",
+                "ask about trend or forecast for a food item in a location",
+                "compare prices of a food item across multiple locations",
+                "greeting message",
+                "ask for help or usage",
+                "say thank you",
+                "ask about the assistant",
+            ]
+            text_emb = embedder.encode([text], convert_to_tensor=True)
+            cand_emb = embedder.encode(cand_texts, convert_to_tensor=True)
+            sims = util.cos_sim(text_emb, cand_emb)[0].tolist()
+            best_idx = max(range(len(sims)), key=lambda i: sims[i])
+            if sims[best_idx] >= 0.35:
+                return INTENT_CANDIDATES[best_idx]
     except Exception as e:
         logger.error(f"Intent classification failed: {e}", exc_info=True)
     

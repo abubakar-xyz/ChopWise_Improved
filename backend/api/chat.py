@@ -5,7 +5,7 @@ import logging
 import uuid
 from fastapi import APIRouter, Cookie, HTTPException
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List
 from services.chatbot_service import generate_chatbot_response
 
@@ -21,6 +21,12 @@ class ChatRequest(BaseModel):
     """Request model for the chat endpoint."""
     session_id: Optional[str] = None
     messages: List[Message] = Field(..., description="The history of messages in the chat.")
+
+    @field_validator('messages')
+    @classmethod
+    def limit_messages(cls, v: List[Message]):  # type: ignore
+        # Keep only last 10 to bound processing cost
+        return v[-10:]
 
 @router.post("/chat")
 async def chat_endpoint(request: ChatRequest, session_id: Optional[str] = Cookie(None)):

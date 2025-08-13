@@ -1,7 +1,7 @@
 import Head from 'next/head';
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaPaperPlane, FaRobot, FaChartLine, FaInfoCircle } from 'react-icons/fa';
+import { FaPaperPlane, FaTimes, FaLightbulb } from 'react-icons/fa';
 import config from '../utils/config';
 
 export default function Home() {
@@ -10,6 +10,12 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [sessionId, setSessionId] = useState(null);
+  const [foods, setFoods] = useState([]);
+  const [lgas, setLgas] = useState([]);
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [debouncedInput, setDebouncedInput] = useState("");
+  const MAX_PROMPT_LEN = 280;
 
   const chatEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -20,7 +26,52 @@ export default function Home() {
     setMessages([
       { role: 'bot', text: 'Welcome to the future of food price intelligence. How can I help you today?' }
     ]);
+    // Fetch meta info for autocomplete
+    (async () => {
+      try {
+        const res = await fetch(`${config.NEXT_PUBLIC_BACKEND_URL}/info`);
+        if (res.ok) {
+          const data = await res.json();
+            setFoods(data.foods || []);
+            setLgas(data.lgas || []);
+        }
+      } catch (e) {
+        // Non-fatal; autocomplete just won't work
+        console.warn('Failed to load info for autocomplete', e);
+      }
+    })();
   }, []);
+
+  // Debounce user input for suggestions
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedInput(input.trim().toLowerCase()), 200);
+    return () => clearTimeout(t);
+  }, [input]);
+
+  const buildSuggestions = useCallback(() => {
+    if (!debouncedInput) {
+      // Provide helpful starter examples
+      return [
+        { label: 'Example: price of rice in Ikeja', fill: 'price of rice in Ikeja' },
+        { label: 'Example: compare price of beans in Ikeja and Surulere', fill: 'compare price of beans in Ikeja and Surulere' },
+        { label: 'Example: trend of maize in Kano', fill: 'trend of maize in Kano' }
+      ];
+    }
+    const term = debouncedInput;
+    const foodHits = foods
+      .filter(f => f.toLowerCase().includes(term))
+      .slice(0, 5)
+      .map(f => ({ label: `Food: ${f}`, fill: f }));
+    const lgaHits = lgas
+      .filter(l => l.toLowerCase().includes(term))
+      .slice(0, 5)
+      .map(l => ({ label: `LGA: ${l}`, fill: l }));
+    return [...foodHits, ...lgaHits];
+  }, [debouncedInput, foods, lgas]);
+
+  useEffect(() => {
+    setSuggestions(buildSuggestions());
+  }, [buildSuggestions]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -29,6 +80,10 @@ export default function Home() {
   const handleChatSubmit = async (e) => {
     e.preventDefault();
     if (!input.trim() || loading) return;
+    if (input.length > MAX_PROMPT_LEN) {
+      setError(`Prompt too long (>${MAX_PROMPT_LEN} chars). Please shorten it.`);
+      return;
+    }
 
     const newUserMessage = { role: 'user', text: input };
     setMessages((prev) => [...prev, newUserMessage]);
@@ -36,7 +91,7 @@ export default function Home() {
     setError("");
 
     try {
-      const history = messages.map(msg => ({ user: msg.role === 'user' ? msg.text : '', bot: msg.role === 'bot' ? msg.text : '' }));
+  const history = messages.map(msg => ({ user: msg.role === 'user' ? msg.text : '', bot: msg.role === 'bot' ? msg.text : '' }));
       history.push({ user: input, bot: '' });
 
       const res = await fetch(`${config.NEXT_PUBLIC_BACKEND_URL}/chat`, {
@@ -70,6 +125,27 @@ export default function Home() {
       setInput("");
       inputRef.current?.focus();
     }
+  };
+
+  const onSuggestionClick = (s) => {
+    setInput(prev => {
+      // If previous input empty or example, replace; else append smartly
+      if (!prev.trim() || prev.startsWith('Example:')) return s.fill;
+      // Avoid duplicate tokens
+      if (prev.toLowerCase().includes(s.fill.toLowerCase())) return prev;
+      return `${prev.trim()} ${s.fill}`.trim();
+    });
+    setShowSuggestions(false);
+    inputRef.current?.focus();
+  };
+
+  const handleInputFocus = () => {
+    setShowSuggestions(true);
+  };
+
+  const handleInputBlur = () => {
+    // Delay hiding to allow click
+    setTimeout(() => setShowSuggestions(false), 180);
   };
 
   return (
@@ -125,15 +201,46 @@ export default function Home() {
 
             <div className="p-4 bg-slate-900/30 border-t border-slate-500/20">
               <form onSubmit={handleChatSubmit} className="flex items-center gap-3">
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="Ask me anything..."
-                  className="flex-1 p-3 bg-slate-700/80 rounded-full border border-transparent focus:outline-none focus:ring-2 focus:ring-cyan-500 transition text-white"
-                  disabled={loading}
-                />
+                <div className="relative flex-1">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={input}
+                    onChange={(e) => { setInput(e.target.value); setShowSuggestions(true); }}
+                    onFocus={handleInputFocus}
+                    onBlur={handleInputBlur}
+                    placeholder="Ask about prices, trends, comparisons..."
+                    className="w-full p-3 pr-10 bg-slate-700/80 rounded-full border border-transparent focus:outline-none focus:ring-2 focus:ring-cyan-500 transition text-white"
+                    disabled={loading}
+                    maxLength={400}
+                  />
+                  {!!input && !loading && (
+                    <button
+                      type="button"
+                      aria-label="Clear"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+                      onClick={() => setInput("")}
+                    >
+                      <FaTimes />
+                    </button>
+                  )}
+                  {showSuggestions && suggestions.length > 0 && (
+                    <div className="absolute left-0 right-0 mt-2 bg-slate-800/95 rounded-xl border border-slate-600/40 max-h-64 overflow-y-auto shadow-lg z-20 backdrop-blur">
+                      {suggestions.map((s, i) => (
+                        <button
+                          type="button"
+                          key={i}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => onSuggestionClick(s)}
+                          className="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-700/60 flex items-center gap-2"
+                        >
+                          <FaLightbulb className="text-cyan-400" /> {s.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <div className="absolute -bottom-6 left-2 text-xs text-slate-500 select-none">{input.length}/{MAX_PROMPT_LEN}</div>
+                </div>
                 <motion.button
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
@@ -144,6 +251,12 @@ export default function Home() {
                 </motion.button>
               </form>
               {error && <div className="text-red-400 text-center mt-2 text-sm">{error}</div>}
+              {loading && (
+                <div className="mt-2 flex items-center justify-center gap-2 text-sm text-slate-400 animate-pulse">
+                  <span className="w-2 h-2 bg-cyan-400/70 rounded-full animate-bounce"></span>
+                  <span>Generating answer...</span>
+                </div>
+              )}
             </div>
           </motion.div>
         </main>

@@ -7,13 +7,18 @@ launching the API.
 """
 
 import logging
+import version_check  # noqa: F401 ensures Python version enforcement
 import os
-from fastapi import FastAPI, Request
+import time
+import uuid
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from starlette.responses import JSONResponse
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
 from dotenv import load_dotenv
+from collections import defaultdict, deque
+from typing import Deque, Dict
 from services.llm import extract_entities, detect_intent
 
 # Load environment variables from a .env file
@@ -63,6 +68,58 @@ def create_app() -> FastAPI:
     app.include_router(chat_router, prefix="/api", tags=["Chat"])
     app.include_router(info_router, prefix="/api", tags=["Info"])
 
+    # --- Lightweight in-memory rate limiting (IP-based) ---
+    RATE_LIMIT_MAX = int(os.getenv("RATE_LIMIT_MAX", "60"))  # requests
+    RATE_LIMIT_WINDOW = int(os.getenv("RATE_LIMIT_WINDOW", "60"))  # seconds
+    _ip_hits: Dict[str, Deque[float]] = defaultdict(lambda: deque())
+
+    @app.middleware("http")
+    async def rate_limit_and_logging_mw(request: Request, call_next):
+        start = time.time()
+        client_ip = request.client.host if request.client else "unknown"
+        now = start
+
+        # Rate limiting (skip for health endpoints)
+        if not request.url.path.startswith("/health"):
+            hits = _ip_hits[client_ip]
+            # prune old
+            while hits and now - hits[0] > RATE_LIMIT_WINDOW:
+                hits.popleft()
+            if len(hits) >= RATE_LIMIT_MAX:
+                return JSONResponse(
+                    status_code=429,
+                    content={"detail": "Rate limit exceeded. Please slow down."},
+                )
+            hits.append(now)
+
+        # Request ID
+        req_id = request.headers.get("X-Request-ID") or uuid.uuid4().hex[:12]
+        # Structured log start
+        logging.info(
+            "REQ start", extra={
+                "event": "request_start", "method": request.method, "path": request.url.path,
+                "ip": client_ip, "request_id": req_id
+            }
+        )
+        try:
+            response: Response = await call_next(request)
+        except Exception as exc:  # already handled by exception handler, but log latency
+            duration = (time.time() - start) * 1000
+            logging.error("REQ error", extra={
+                "event": "request_error", "method": request.method, "path": request.url.path,
+                "ip": client_ip, "request_id": req_id, "ms": round(duration, 2), "error": str(exc)
+            })
+            raise
+        duration = (time.time() - start) * 1000
+        response.headers["X-Request-ID"] = req_id
+        logging.info(
+            "REQ done", extra={
+                "event": "request_end", "method": request.method, "path": request.url.path,
+                "ip": client_ip, "request_id": req_id, "status": response.status_code, "ms": round(duration, 2)
+            }
+        )
+        return response
+
     # Define a root endpoint for basic API information
     @app.get("/", tags=["Root"])
     async def root():
@@ -73,13 +130,20 @@ def create_app() -> FastAPI:
     async def health_check():
         return {"status": "ok"}
 
+    # Simple metrics store (can be expanded) using closure variables above
     @app.get("/health/deep", tags=["Health"])
     async def deep_health_check():
         try:
             # Exercise core components
             _ = detect_intent("hello")
             _ = extract_entities("price of rice in Ikeja")
-            return {"status": "ok", "llm": "ready"}
+            # Provide rate limit snapshot
+            sample_metrics = {
+                "tracked_ips": len(_ip_hits),
+                "rate_limit_max": RATE_LIMIT_MAX,
+                "rate_limit_window_sec": RATE_LIMIT_WINDOW,
+            }
+            return {"status": "ok", "llm": "ready", "metrics": sample_metrics}
         except Exception as exc:
             logger.error(f"Deep health check failed: {exc}", exc_info=True)
             return JSONResponse(

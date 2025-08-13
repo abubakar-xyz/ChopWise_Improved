@@ -7,7 +7,9 @@ and response generation to provide a comprehensive answer to user queries.
 It maintains a conversational history to provide context-aware responses.
 """
 import logging
-from typing import List, Dict, Any
+import time
+import uuid
+from typing import List, Dict, Any, Tuple, Optional
 from services.llm import (
     extract_entities,
     detect_intent,
@@ -23,34 +25,65 @@ logger = logging.getLogger(__name__)
 # In-memory cache for chat histories (replace with a persistent store in production)
 chat_histories: Dict[str, List[Dict[str, str]]] = {}
 
-def process_chat_message(session_id: str, messages: List[Dict[str, str]]) -> str:
-    """
-    Processes a chat message, orchestrating the RAG pipeline.
-    """
-    if not messages:
-        return "I'm sorry, but I didn't receive a message. Could you please try again?"
+# Cache for price predictions (food_item,lga) -> (timestamp, data)
+_prediction_cache: Dict[Tuple[str, str], Tuple[float, Dict[str, str]]] = {}
+_PREDICTION_TTL = 300  # seconds
 
-    # Get the last user message
+MAX_HISTORY = 10  # cap per session to bound memory
+
+def _trim_history(session_id: str):
+    if session_id in chat_histories and len(chat_histories[session_id]) > MAX_HISTORY:
+        chat_histories[session_id] = chat_histories[session_id][-MAX_HISTORY:]
+
+def _prepare_messages(messages: List[Dict[str, str]]) -> List[Dict[str, str]]:
+    # Normalize and filter out empty user entries
+    cleaned = []
+    for m in messages:
+        if m.get("user") and isinstance(m.get("user"), str):
+            cleaned.append({"user": m["user"].strip(), "bot": (m.get("bot") or "").strip()})
+    return cleaned[-MAX_HISTORY:]
+
+def _validate_or_new_session_id(session_id: str) -> str:
+    try:
+        uuid.UUID(session_id)
+        return session_id
+    except Exception:
+        return uuid.uuid4().hex
+
+def _cached_price(food_item: str, lga: str) -> Optional[Dict[str, str]]:
+    key = (food_item, lga)
+    entry = _prediction_cache.get(key)
+    now = time.time()
+    if entry and (now - entry[0]) < _PREDICTION_TTL:
+        return entry[1]
+    try:
+        data = get_price_prediction({"food_item": food_item, "lga": lga})
+        _prediction_cache[key] = (now, data)
+        return data
+    except Exception as e:
+        logger.error(f"Prediction cache miss compute failure: {e}", exc_info=True)
+        return None
+
+def process_chat_message(session_id: str, messages: List[Dict[str, str]]) -> str:
+    """Main RAG orchestrator returning a user-facing string response."""
+    session_id = _validate_or_new_session_id(session_id)
+    messages = _prepare_messages(messages)
+    if not messages:
+        return "I didn't receive anything to process. Please type your question about food prices."
+
     last_user_message = messages[-1]["user"]
 
-    # 1. Extract entities
+    # 1. Extract entities / 2. Detect intent
     entities = extract_entities(last_user_message)
-    
-    # 2. Detect intent
     intent = detect_intent(last_user_message)
-    
+
     # 3. Retrieve data if necessary (e.g., price prediction)
     retrieved_data = None
     if intent == "price_query":
         if entities.get("FOOD") and entities.get("GPE"):
-            try:
-                prediction_data = {
-                    "food_item": entities["FOOD"],
-                    "lga": entities["GPE"][0] if isinstance(entities["GPE"], list) else entities["GPE"],
-                }
-                retrieved_data = get_price_prediction(prediction_data)
-            except Exception as e:
-                logger.error(f"Price prediction failed: {e}", exc_info=True)
+            target_lga = entities["GPE"][0] if isinstance(entities["GPE"], list) else entities["GPE"]
+            retrieved_data = _cached_price(entities["FOOD"], target_lga)
+            if not retrieved_data:
                 return "I couldn't fetch the price for that item. Please ensure the food item and location are correct."
         else:
             return "To get a price, please tell me the food item and the location (LGA)."
@@ -68,11 +101,11 @@ def process_chat_message(session_id: str, messages: List[Dict[str, str]]) -> str
             response = get_price_trend(entities["FOOD"], location)
     else:
         response = generate_llm_response(intent, entities, retrieved_data)
-    
+
     # 5. Update and store conversation history
     if session_id not in chat_histories:
         chat_histories[session_id] = []
-    
-    chat_histories[session_id].append({"user": last_user_message, "bot": response})
-    
+    chat_histories[session_id].append({"user": last_user_message, "bot": response, "intent": intent, "entities": entities})
+    _trim_history(session_id)
+
     return response

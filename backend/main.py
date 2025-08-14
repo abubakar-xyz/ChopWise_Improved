@@ -51,7 +51,8 @@ def create_app() -> FastAPI:
     # Prefer regex for wildcards (Netlify previews, Render domains), fallback to explicit list
     origin_regex = os.getenv(
         "ALLOWED_ORIGIN_REGEX",
-        r"https://.*\.netlify\.app$|https://.*\.onrender\.com$|http://localhost:3000$|https://localhost:3000$",
+        # Default broadly for simplicity in multi-env; tighten via env in prod
+        r"^https?://.*$",
     )
     app.add_middleware(
         CORSMiddleware,
@@ -67,6 +68,10 @@ def create_app() -> FastAPI:
     # Include the chat and info routers with their respective prefixes
     app.include_router(chat_router, prefix="/api", tags=["Chat"])
     app.include_router(info_router, prefix="/api", tags=["Info"])
+
+    @app.get("/api/ping", tags=["Health"])
+    async def ping():
+        return {"pong": True}
 
     # --- Lightweight in-memory rate limiting (IP-based) ---
     RATE_LIMIT_MAX = int(os.getenv("RATE_LIMIT_MAX", "60"))  # requests

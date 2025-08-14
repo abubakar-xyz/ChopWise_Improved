@@ -102,7 +102,10 @@ export default function Home() {
 
       if (!res.ok) {
         const body = await res.text().catch(() => '');
-        throw new Error(`API error: ${res.status} ${res.statusText} ${body}`);
+        console.error('Chat API error', res.status, res.statusText, body);
+        setError(`API ${res.status}: ${body || res.statusText}`);
+        setLoading(false);
+        return;
       }
 
       const data = await res.json();
@@ -118,8 +121,8 @@ export default function Home() {
         setError("Received an empty response from the server.");
       }
     } catch (err) {
-      setError("Failed to connect to the chatbot. Please try again later.");
-      console.error(err);
+      setError("Network error. Please check the backend URL and try again.");
+      console.error('Network error', err);
     } finally {
       setLoading(false);
       setInput("");

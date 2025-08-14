@@ -6,7 +6,8 @@ import logging
 import joblib
 import pandas as pd
 import os
-from fuzzywuzzy import process
+import re
+from fuzzywuzzy import process, fuzz
 from functools import lru_cache
 try:
     from sentence_transformers import SentenceTransformer, util  # type: ignore
@@ -33,8 +34,17 @@ try:
 
     # Load the dataset for entity matching
     df = pd.read_csv(os.path.join(script_dir, "..", "FoodPrices_Dataset.csv"))
-    FOOD_ITEMS = df["Food Item"].unique().tolist()
-    LGAS = df["LGA"].unique().tolist()
+    # Drop NA and ensure strings to avoid fuzzy matching errors
+    FOOD_ITEMS = df["Food Item"].dropna().astype(str).unique().tolist()
+    LGAS = df["LGA"].dropna().astype(str).unique().tolist()
+    STATES = df["State"].dropna().astype(str).unique().tolist()
+    # Precompute lowercase lookup maps
+    _LGAS_LOWER = {l.lower(): l for l in LGAS}
+    _STATES_LOWER = {s.lower(): s for s in STATES}
+    _STATE_TO_LGAS = {
+        state: sorted(set(df.loc[df["State"] == state, "LGA"].dropna().astype(str).tolist()))
+        for state in STATES
+    }
 
     # Lazy init for embedder (small, fast model)
     _EMBEDDER = None
@@ -62,40 +72,98 @@ except Exception as e:
 
 # --- Core Functions ---
 
+STOPWORDS = {
+    "in", "of", "the", "on", "at", "for", "to", "and", "a", "an",
+    "is", "are", "was", "were", "please", "me", "about", "how", "much",
+    "price", "cost", "naira", "₦", "cheaper", "compare"
+}
+
 def extract_entities(text: str) -> dict:
     """
     Extracts food items and locations from text using NER and fuzzy matching.
     """
-    entities = {"FOOD": None, "GPE": []}
-    
-    # 1. NER for initial entity extraction
+    entities = {"FOOD": None, "GPE": [], "STATE": None}
+
     try:
-        # Tokenize text and fuzzy match against known lists
+        low = text.lower()
         tokens = [t.strip(",.?! ") for t in text.split() if t.strip()]
+        tokens = [t for t in tokens if t.isalpha() and len(t) >= 3 and t.lower() not in STOPWORDS]
+
+        # FOOD: prefer full-text fuzzy on item vocab, then substring
+        try:
+            fmatch = process.extractOne(text, FOOD_ITEMS, scorer=fuzz.token_set_ratio)
+            if fmatch and fmatch[1] >= 75:
+                entities["FOOD"] = fmatch[0]
+        except Exception:
+            pass
+        if not entities["FOOD"]:
+            for food in FOOD_ITEMS:
+                if food.lower() in low:
+                    entities["FOOD"] = food
+                    break
+
+        # STATE detection (helps ask for LGA if only state provided)
         for tok in tokens:
-            if not entities["FOOD"]:
-                match = process.extractOne(tok, FOOD_ITEMS)
-                if match and match[1] >= 85:
-                    entities["FOOD"] = match[0]
-            match = process.extractOne(tok, LGAS)
-            if match and match[1] >= 88 and match[0] not in entities["GPE"]:
-                entities["GPE"].append(match[0])
+            st = _STATES_LOWER.get(tok.lower())
+            if st:
+                entities["STATE"] = st
+                break
+
+        # LGA detection
+        # Define candidate LGA list (filter by state if present later)
+        lga_vocab = LGAS
+
+        # 1) Direct substring matches against full LGA vocab for recall
+        for lga_lower, lga in _LGAS_LOWER.items():
+            if lga_lower in low and lga not in entities["GPE"]:
+                entities["GPE"].append(lga)
+
+        # 2) Try phrase after 'in ...'
+        if not entities["GPE"]:
+            after_in = re.findall(r"\bin\s+([a-zA-Z\s\-]+)", low)
+            for phrase in after_in:
+                # If phrase is a state, record it and skip LGA match
+                st = _STATES_LOWER.get(phrase.strip().lower())
+                if not st:
+                    sm = process.extractOne(phrase, STATES, scorer=fuzz.token_set_ratio)
+                    if sm and sm[1] >= 92:
+                        st = sm[0]
+                if st and not entities["STATE"]:
+                    entities["STATE"] = st
+                    continue
+                # Otherwise try to match LGA using token_set_ratio
+                # If state known, restrict vocabulary
+                lga_vocab = _STATE_TO_LGAS.get(entities["STATE"], LGAS) if entities["STATE"] else LGAS
+                lmatch = process.extractOne(phrase, lga_vocab, scorer=fuzz.token_set_ratio)
+                if lmatch and lmatch[1] >= 85 and lmatch[0] not in entities["GPE"]:
+                    entities["GPE"].append(lmatch[0])
+
+        # 3) As a last resort, full text fuzzy vs LGA list (token_set_ratio)
+        # If a state is provided but no LGA detected, do NOT guess an LGA.
+        if not entities["GPE"] and not entities.get("STATE"):
+            lmatch = process.extractOne(text, LGAS, scorer=fuzz.token_set_ratio)
+            if lmatch and lmatch[1] >= 90:
+                entities["GPE"].append(lmatch[0])
+
     except Exception as e:
         logger.error(f"Entity extraction failed: {e}", exc_info=True)
 
-    # 2. Fallback to keyword search if NER fails
-    if not entities["FOOD"]:
-        for food in FOOD_ITEMS:
-            if food.lower() in text.lower():
-                entities["FOOD"] = food
-                break
-    if not entities["GPE"]:
-        for lga in LGAS:
-            if lga.lower() in text.lower():
-                entities["GPE"].append(lga)
-                
     logger.info(f"Extracted entities: {entities}")
     return entities
+
+def get_lgas_for_state(state: str) -> list:
+    """Return list of LGAs for a given state name (case-insensitive)."""
+    if not state:
+        return []
+    st = _STATES_LOWER.get(state.lower())
+    if not st:
+        # Try fuzzy match
+        sm = process.extractOne(state, STATES, scorer=fuzz.token_set_ratio)
+        if sm and sm[1] >= 92:
+            st = sm[0]
+        else:
+            return []
+    return _STATE_TO_LGAS.get(st, [])
 
 @lru_cache(maxsize=128)
 def detect_intent(text: str) -> str:
@@ -110,6 +178,9 @@ def detect_intent(text: str) -> str:
         if any(k in low for k in ["trend", "increase", "decrease", "forecast", "next month", "next week"]):
             return "trend_query"
         if any(k in low for k in ["price", "cost", "how much", "naira", "₦"]):
+            return "price_query"
+        # If a known food appears, default to price intent
+        if any(f.lower() in low for f in FOOD_ITEMS):
             return "price_query"
         if any(k in low for k in ["hello", "hi", "hey"]):
             return "greeting"
@@ -147,29 +218,51 @@ def get_price_prediction(data: dict) -> dict:
     Predicts the price of a food item in a specific LGA.
     """
     try:
-        # Create a DataFrame for the prediction
-        input_df = pd.DataFrame([data])
-        
-        # One-hot encode categorical features to match the model's training format
-        input_encoded = pd.get_dummies(input_df)
-        input_aligned = input_encoded.reindex(columns=features, fill_value=0)
-        
+        # Build a zero-initialized feature vector aligned with training
+        vec = pd.Series(0.0, index=pd.Index(features, name="feature"))
+
+        # Date-derived features used during training
+        today = pd.Timestamp.today()
+        if 'day' in vec.index:
+            vec['day'] = float(today.day)
+        if 'month' in vec.index:
+            vec['month'] = float(today.month)
+        if 'year' in vec.index:
+            vec['year'] = float(today.year)
+
+        # Extract provided categories
+        food_item = str(data.get("food_item", "")).strip()
+        lga = str(data.get("lga", "")).strip()
+
+        # Set one-hot for Food Item (if present in training features)
+        if food_item:
+            prefix = 'Food Item_'
+            for col in vec.index:
+                if col.startswith(prefix) and col[len(prefix):] == food_item:
+                    vec[col] = 1.0
+        # Set one-hot for LGA
+        if lga:
+            prefix = 'LGA_'
+            for col in vec.index:
+                if col.startswith(prefix) and col[len(prefix):] == lga:
+                    vec[col] = 1.0
+
         # Predict the price
-        predicted_price = model.predict(input_aligned)[0]
-        
+        predicted_price = float(model.predict(vec.to_frame().T)[0])
+
         # Forecast for next month using a simple moving average
         # Get the historical data for the food item and LGA
-        historical_data = df[(df["Food Item"] == data["food_item"]) & (df["LGA"] == data["lga"])]
+        historical_data = df[(df["Food Item"] == food_item) & (df["LGA"] == lga)]
         if len(historical_data) >= 3:
             # Use the average of the last 3 prices as the forecast
-            forecast_price = historical_data["UPRICE"].tail(3).mean()
+            forecast_price = float(historical_data["UPRICE"].tail(3).mean())
         else:
             # Fallback to a simple percentage increase if there is not enough historical data
-            forecast_price = predicted_price * 1.02
-        
+            forecast_price = float(predicted_price * 1.02)
+
         return {
-            "food_item": data["food_item"],
-            "lga": data["lga"],
+            "food_item": food_item,
+            "lga": lga,
             "predicted_price": predicted_price,
             "forecast_price": forecast_price,
         }

@@ -3,6 +3,7 @@ Chat API - Handles chat interactions, session management, and calls the chatbot 
 """
 import logging
 import uuid
+import os
 from fastapi import APIRouter, Cookie, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, field_validator
@@ -48,7 +49,7 @@ async def chat_endpoint(request: ChatRequest, session_id: Optional[str] = Cookie
         return JSONResponse({"reply": response, "session_id": sid})
     except Exception as e:
         logger.error(f"Chat error for session {sid}: {e}", exc_info=True)
-        return JSONResponse(
-            {"reply": "Sorry, something went wrong. Please try again.", "session_id": sid},
-            status_code=500,
-        )
+        payload = {"reply": "Sorry, something went wrong. Please try again.", "session_id": sid}
+        if os.getenv("DEBUG_CHAT_ERRORS") == "1":
+            payload["detail"] = str(e)
+        return JSONResponse(payload, status_code=500)

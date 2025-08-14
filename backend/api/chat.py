@@ -42,10 +42,12 @@ async def chat_endpoint(request: ChatRequest, session_id: Optional[str] = Cookie
     
     # 3. Generate a response using the chatbot service
     try:
-        response = generate_chatbot_response(sid, request.messages)
+        # Ensure messages are plain dicts for downstream services
+        plain_messages = [{"user": m.user, "bot": m.bot} for m in request.messages]
+        response = generate_chatbot_response(sid, plain_messages)
         return JSONResponse({"reply": response, "session_id": sid})
     except Exception as e:
-        logger.error(f"Chat error: {e}", exc_info=True)
+        logger.error(f"Chat error for session {sid}: {e}", exc_info=True)
         return JSONResponse(
             {"reply": "Sorry, something went wrong. Please try again.", "session_id": sid},
             status_code=500,

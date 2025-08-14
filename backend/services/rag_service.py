@@ -36,11 +36,17 @@ def _trim_history(session_id: str):
         chat_histories[session_id] = chat_histories[session_id][-MAX_HISTORY:]
 
 def _prepare_messages(messages: List[Dict[str, str]]) -> List[Dict[str, str]]:
-    # Normalize and filter out empty user entries
+    # Normalize and filter out empty user entries; support dicts or objects (e.g., Pydantic models)
     cleaned = []
     for m in messages:
-        if m.get("user") and isinstance(m.get("user"), str):
-            cleaned.append({"user": m["user"].strip(), "bot": (m.get("bot") or "").strip()})
+        if isinstance(m, dict):
+            user_val = m.get("user")
+            bot_val = m.get("bot")
+        else:
+            user_val = getattr(m, "user", None)
+            bot_val = getattr(m, "bot", None)
+        if user_val and isinstance(user_val, str):
+            cleaned.append({"user": user_val.strip(), "bot": (bot_val or "").strip()})
     return cleaned[-MAX_HISTORY:]
 
 def _validate_or_new_session_id(session_id: str) -> str:

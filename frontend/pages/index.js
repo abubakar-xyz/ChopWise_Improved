@@ -571,7 +571,7 @@ export default function Home() {
                   <FaMastodon /> <span className="text-sm">Mastodon</span>
                 </a>
                 <a href="https://github.com/abubakar-xyz/ChopWise_Improved" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-700/60 bg-slate-800/60 text-slate-200 hover:border-cyan-500/60 hover:bg-slate-800/80 transition">
-                  <FaGithub /> <span className="text-sm">GitHub</span>
+                  <FaGithub /> <span className="text-sm">See project on GitHub</span>
                 </a>
               </div>
             </div>

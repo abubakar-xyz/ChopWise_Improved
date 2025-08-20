@@ -1,7 +1,7 @@
 import Head from 'next/head';
 import { useRef, useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaPaperPlane, FaChartBar, FaMapMarkerAlt, FaUtensils, FaLightbulb, FaTimes, FaLinkedin, FaTwitter } from 'react-icons/fa';
+import { FaPaperPlane, FaChartBar, FaMapMarkerAlt, FaUtensils, FaLightbulb, FaTimes, FaLinkedin, FaTwitter, FaGithub } from 'react-icons/fa';
 import { FaMastodon } from 'react-icons/fa6';
 import config from '../utils/config';
 import { handleApiError, isValidSessionId, generateRequestId } from '../utils/errorHandler';
@@ -182,8 +182,10 @@ export default function Home() {
       </Head>
 
       <div className="min-h-screen font-sans flex flex-col items-center justify-center p-4 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <header className="w-full max-w-5xl mx-auto p-4 flex justify-between items-center fixed top-0 z-50">
-          <div className="flex items-center gap-3">
+        {/* Fixed header with opaque/blurred background and divider for readability */}
+        <header className="fixed top-0 left-0 w-full z-50 bg-slate-900/80 supports-[backdrop-filter]:bg-slate-900/60 backdrop-blur border-b border-slate-700/40 shadow-sm">
+          <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div className="flex items-center gap-3">
             <motion.img
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -201,17 +203,21 @@ export default function Home() {
               <span className="text-2xl font-bold tracking-wider text-white">ChopWise</span>
               <span className="text-xs text-cyan-400/80">Food Price Intelligence</span>
             </motion.div>
+            </div>
+            {/* keep any right-side actions if added later */}
           </div>
         </header>
 
-        <main className="w-full max-w-6xl mx-auto flex-grow flex flex-col lg:flex-row items-center justify-center pt-24 gap-10">
+  {/* Add larger top padding so hero never sits under header */}
+  <main className="w-full max-w-6xl mx-auto flex-grow flex flex-col lg:flex-row items-center justify-center pt-28 md:pt-36 gap-10">
           <div className="w-full md:w-3/5 lg:w-7/12 p-6 md:p-8 space-y-6 text-center md:text-left">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
             >
-              <h1 className="text-6xl lg:text-7xl font-extrabold leading-[1.05] bg-clip-text text-transparent bg-gradient-to-r from-white to-cyan-200 drop-shadow-[0_2px_20px_rgba(34,211,238,0.15)]">
+              {/* Reduce headline size for better hierarchy on all screens */}
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-cyan-200 drop-shadow-[0_2px_14px_rgba(34,211,238,0.12)]">
                 Real-Time Food Prices. <br/>
                 <span className="text-cyan-400">Instant Answers.</span>
               </h1>
@@ -426,7 +432,7 @@ export default function Home() {
               <p className="text-slate-300 text-sm md:text-base">
                 Designed and built with love and passion by <a href="https://www.linkedin.com/in/abubakar-abdulfatah/" target="_blank" rel="noopener noreferrer" className="text-cyan-300 hover:text-cyan-200 underline underline-offset-4 decoration-cyan-700/60">Abubakar Abdulfatah</a> and GitHub Copilot :)
               </p>
-              <div className="flex items-center justify-center gap-3 md:gap-4">
+              <div className="flex items-center justify-center gap-3 md:gap-4 flex-wrap">
                 <a href="https://www.linkedin.com/in/abubakar-abdulfatah/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-700/60 bg-slate-800/60 text-slate-200 hover:border-cyan-500/60 hover:bg-slate-800/80 transition">
                   <FaLinkedin /> <span className="text-sm">LinkedIn</span>
                 </a>
@@ -435,6 +441,9 @@ export default function Home() {
                 </a>
                 <a href="https://mstdn.business/@abubakar" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-700/60 bg-slate-800/60 text-slate-200 hover:border-cyan-500/60 hover:bg-slate-800/80 transition">
                   <FaMastodon /> <span className="text-sm">Mastodon</span>
+                </a>
+                <a href="https://github.com/abubakar-xyz/ChopWise_Improved" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-700/60 bg-slate-800/60 text-slate-200 hover:border-cyan-500/60 hover:bg-slate-800/80 transition">
+                  <FaGithub /> <span className="text-sm">GitHub</span>
                 </a>
               </div>
             </div>

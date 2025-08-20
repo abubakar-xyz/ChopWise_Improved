@@ -1,9 +1,9 @@
 import Head from 'next/head';
-import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
+import { useRef, useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaPaperPlane, FaChartBar, FaMapMarkerAlt, FaUtensils, FaLightbulb, FaTimes } from 'react-icons/fa';
 import config from '../utils/config';
-import { sanitizeErrorMessage, handleApiError, isValidSessionId, generateRequestId } from '../utils/errorHandler';
+import { handleApiError, isValidSessionId, generateRequestId } from '../utils/errorHandler';
 
 // Example queries shown in rotation
 const EXAMPLE_QUERIES = [
@@ -26,7 +26,6 @@ export default function Home() {
   const chatEndRef = useRef(null);
   const inputRef = useRef(null);
 
-  // Auto-rotate example queries
   // Memoize welcome message
   const welcomeMessage = useMemo(() => ({
     role: 'bot',
@@ -50,7 +49,7 @@ export default function Home() {
     }
     setMessages([welcomeMessage]);
 
-    // Cleanup function to prevent memory leaks
+    // Cleanup
     return () => {
       setMessages([]);
       setInput('');
@@ -61,54 +60,23 @@ export default function Home() {
   // Scroll to bottom on new messages
   useEffect(() => {
     if (!chatEndRef.current) return;
-    
     const smoothScroll = () => {
       chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
-
-    // Use requestAnimationFrame for smoother scrolling
     if (messages.length > 0) {
       requestAnimationFrame(smoothScroll);
     }
-
     return () => {
-      // Cancel any pending animation frame
-      cancelAnimationFrame(smoothScroll);
+      // noop cleanup for RAF (can't cancel without id)
     };
   }, [messages]);
 
-  const buildSuggestions = useCallback(() => {
-    if (!debouncedInput) {
-      // Provide helpful starter examples
-      return [
-        { label: 'Example: price of rice in Ikeja', fill: 'price of rice in Ikeja' },
-        { label: 'Example: compare price of beans in Ikeja and Surulere', fill: 'compare price of beans in Ikeja and Surulere' },
-        { label: 'Example: trend of maize in Kano', fill: 'trend of maize in Kano' }
-      ];
-    }
-    const term = debouncedInput;
-    const foodHits = foods
-      .filter(f => f.toLowerCase().includes(term))
-      .slice(0, 5)
-      .map(f => ({ label: `Food: ${f}`, fill: f }));
-    const lgaHits = lgas
-      .filter(l => l.toLowerCase().includes(term))
-      .slice(0, 5)
-      .map(l => ({ label: `LGA: ${l}`, fill: l }));
-    return [...foodHits, ...lgaHits];
-  }, [debouncedInput, foods, lgas]);
-
-  useEffect(() => {
-    setSuggestions(buildSuggestions());
-  }, [buildSuggestions]);
-
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, loading]);
+  // No-op focus/blur handlers (suggestion system removed)
+  const handleInputFocus = () => { inputRef.current?.focus(); };
+  const handleInputBlur = () => {};
 
   const handleChatSubmit = async (e) => {
     e.preventDefault();
-    
     // Basic validation
     if (!input.trim() || loading) return;
     if (input.length > MAX_PROMPT_LEN) {
@@ -119,7 +87,7 @@ export default function Home() {
     // Prepare request
     const userMessage = input.trim();
     const requestId = generateRequestId();
-    
+
     // Update UI state
     setInput("");
     setError("");
@@ -135,6 +103,9 @@ export default function Home() {
         setSessionId(null);
       }
 
+      // Add a timeout so requests don't hang indefinitely
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 25000);
       const response = await fetch(`${config.NEXT_PUBLIC_BACKEND_URL}/chat`, {
         method: 'POST',
         headers: {
@@ -143,19 +114,19 @@ export default function Home() {
           'X-Request-ID': requestId,
           'X-Session-ID': sessionId || 'new'
         },
-        body: JSON.stringify({ 
-          message: userMessage,
-          session_id: sessionId || undefined
+        body: JSON.stringify({
+          session_id: sessionId || null,
+          messages: [
+            { user: userMessage, bot: "" }
+          ]
         }),
+        signal: controller.signal,
       });
 
-      let errorData;
       const contentType = response.headers.get("content-type");
-      
-      // Handle non-OK responses
       if (!response.ok) {
         if (contentType?.includes("application/json")) {
-          errorData = await response.json();
+          const errorData = await response.json();
           throw new Error(errorData.detail || 'Failed to get response');
         } else {
           const text = await response.text();
@@ -163,16 +134,8 @@ export default function Home() {
         }
       }
 
-      // Validate response format
-      const data = await response.json();
-      if (!data || (typeof data.response !== 'string' && !data.session_id)) {
-        throw new Error('Invalid response format from server');
-      }
-
       const responseData = await response.json();
-      
-      // Validate response format
-      if (!responseData || (typeof responseData.response !== 'string' && !responseData.session_id)) {
+      if (!responseData || (typeof responseData.reply !== 'string' && !responseData.session_id)) {
         throw new Error('Invalid response format from server');
       }
 
@@ -183,51 +146,27 @@ export default function Home() {
 
       setMessages(prev => [...prev, { 
         role: 'bot', 
-        text: responseData.response,
+        text: responseData.reply,
         id: `${requestId}-response`
       }]);
     } catch (err) {
+      if (err && (err.name === 'AbortError' || err.code === 'ERR_CANCELED')) {
+        setError('Request timed out. Please try again.');
+      } else {
       handleApiError(err, setError);
-      
+      }
       // Remove failed message from UI
       setMessages(prev => prev.filter(msg => msg.id !== requestId));
-      
-      // Log error for monitoring
-      console.error('Chat error:', {
-        error: err,
-        requestId,
-        sessionId,
-        timestamp: new Date().toISOString()
-      });
+      console.error('Chat error:', { error: err, requestId, sessionId, timestamp: new Date().toISOString() });
     } finally {
       setLoading(false);
+      try { clearTimeout(timeoutId); } catch {}
     }
-  };
-
-  const onSuggestionClick = (s) => {
-    setInput(prev => {
-      // If previous input empty or example, replace; else append smartly
-      if (!prev.trim() || prev.startsWith('Example:')) return s.fill;
-      // Avoid duplicate tokens
-      if (prev.toLowerCase().includes(s.fill.toLowerCase())) return prev;
-      return `${prev.trim()} ${s.fill}`.trim();
-    });
-    setShowSuggestions(false);
-    inputRef.current?.focus();
-  };
-
-  const handleInputFocus = () => {
-    setShowSuggestions(true);
-  };
-
-  const handleInputBlur = () => {
-    // Delay hiding to allow click
-    setTimeout(() => setShowSuggestions(false), 180);
   };
 
   return (
     <>
-            <Head>
+      <Head>
         <title>ChopWise - Real-time Food Price Intelligence</title>
         <meta name="description" content="Get instant access to food prices across Nigeria's markets with AI-powered insights." />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
@@ -375,7 +314,7 @@ export default function Home() {
                              focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-transparent 
                              transition-all duration-200 text-white placeholder-slate-400"
                     disabled={loading}
-                    maxLength={400}
+                    maxLength={MAX_PROMPT_LEN}
                   />
                   {!!input && !loading && (
                     <button

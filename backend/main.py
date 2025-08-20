@@ -59,7 +59,14 @@ def create_app() -> FastAPI:
         allow_origin_regex=origin_regex,
         allow_credentials=True,
         allow_methods=["GET", "POST", "OPTIONS"],
-        allow_headers=["Content-Type", "Authorization"],
+        allow_headers=[
+            "Content-Type",
+            "Authorization",
+            "Accept",
+            "X-Request-ID",
+            "X-Session-ID",
+        ],
+        expose_headers=["X-Request-ID"],
     )
 
     # Add GZip middleware to compress large responses

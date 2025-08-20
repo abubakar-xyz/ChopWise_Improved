@@ -17,3 +17,16 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+# Security headers for static export (Next.js headers don't apply to exported sites)
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-DNS-Prefetch-Control = "on"
+    X-XSS-Protection = "1; mode=block"
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    # Allow assets from self and Google Fonts; allow API requests over HTTPS
+    # Note: Adjust connect-src to your backend domain(s) if you want to be stricter
+    Content-Security-Policy = "default-src 'self'; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' https:;"

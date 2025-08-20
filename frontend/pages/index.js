@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FaPaperPlane, FaChartBar, FaMapMarkerAlt, FaUtensils, FaLightbulb, FaTimes, FaLinkedin, FaTwitter, FaGithub } from 'react-icons/fa';
 import { FaMastodon } from 'react-icons/fa6';
 import config from '../utils/config';
+import useChatbotInfo from '../utils/useChatbotInfo';
 import { handleApiError, isValidSessionId, generateRequestId } from '../utils/errorHandler';
 
 // Example queries shown in rotation
@@ -26,6 +27,26 @@ export default function Home() {
 
   const chatEndRef = useRef(null);
   const inputRef = useRef(null);
+  const searchRef = useRef(null);
+
+  // Info for foods/states/lgas
+  const info = useChatbotInfo();
+  const foods = Array.isArray(info?.foods) ? info.foods : [];
+
+  // Food picker state
+  const [showFoodPicker, setShowFoodPicker] = useState(false);
+  const [foodQuery, setFoodQuery] = useState("");
+
+  const popularFoods = useMemo(() => foods.slice(0, 8), [foods]);
+  const filteredFoods = useMemo(() => {
+    const q = foodQuery.trim().toLowerCase();
+    if (!q) return foods;
+    try {
+      return foods.filter(f => typeof f === 'string' && f.toLowerCase().includes(q));
+    } catch {
+      return foods;
+    }
+  }, [foods, foodQuery]);
 
   // Memoize welcome message
   const welcomeMessage = useMemo(() => ({
@@ -75,6 +96,35 @@ export default function Home() {
   // No-op focus/blur handlers (suggestion system removed)
   const handleInputFocus = () => { inputRef.current?.focus(); };
   const handleInputBlur = () => {};
+
+  // Insert selected food into the input for quick prompting
+  const insertFood = (food) => {
+    if (!food) return;
+    const prefix = input?.length ? `${input.trim()} ` : "";
+    setInput(`${prefix}price of ${food} in `);
+    setShowFoodPicker(false);
+    setShowGuide(false);
+    setTimeout(() => inputRef.current?.focus(), 0);
+  };
+
+  // Keyboard shortcuts: '/' to open picker, Esc to close
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === '/' && !showFoodPicker) {
+        // Ignore if typing in an input/textarea already
+        const tag = (e.target?.tagName || '').toLowerCase();
+        if (tag === 'input' || tag === 'textarea') return;
+        e.preventDefault();
+        setShowFoodPicker(true);
+        setTimeout(() => searchRef.current?.focus(), 0);
+      }
+      if (e.key === 'Escape' && showFoodPicker) {
+        setShowFoodPicker(false);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showFoodPicker]);
 
   const handleChatSubmit = async (e) => {
     e.preventDefault();
@@ -266,6 +316,33 @@ export default function Home() {
               >
                 Your intelligent companion for navigating Nigeria's food market prices. Ask me anything.
               </motion.p>
+
+              {/* Popular foods and full list trigger */}
+              <div className="mt-6">
+                <div className="flex flex-wrap items-center gap-2 justify-center md:justify-start">
+                  {(popularFoods.length ? popularFoods : ["rice", "beans", "garri", "yam"]).map((f, i) => (
+                    <button
+                      key={`${f}-${i}`}
+                      type="button"
+                      onClick={() => insertFood(f)}
+                      className="px-3 py-1.5 rounded-full bg-slate-800/70 text-slate-100 border border-slate-700 hover:border-cyan-500 hover:bg-slate-800 transition text-sm"
+                      aria-label={`Use ${f}`}
+                    >
+                      {f}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => { setShowFoodPicker(true); setTimeout(() => searchRef.current?.focus(), 0); }}
+                    className="px-3 py-1.5 rounded-full bg-cyan-900/30 text-cyan-300 border border-cyan-700/40 hover:bg-cyan-800/40 transition text-sm"
+                    aria-haspopup="dialog"
+                    aria-expanded={showFoodPicker}
+                  >
+                    Browse all foods
+                  </button>
+                </div>
+                <p className="mt-2 text-xs text-slate-400 text-center md:text-left">Tip: Press "/" to open the food list</p>
+              </div>
             </motion.div>
           </div>
 
@@ -425,6 +502,57 @@ export default function Home() {
             </div>
           </motion.div>
         </main>
+
+        {/* Food picker modal */}
+        {showFoodPicker && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-start md:items-center justify-center p-4"
+            onClick={() => setShowFoodPicker(false)}
+          >
+            <div
+              className="w-full max-w-2xl rounded-2xl bg-slate-900 border border-slate-700 shadow-2xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-3 border-b border-slate-700/70 bg-slate-800/60">
+                <input
+                  ref={searchRef}
+                  value={foodQuery}
+                  onChange={(e) => setFoodQuery(e.target.value)}
+                  placeholder="Search foods…"
+                  className="w-full bg-transparent outline-none text-slate-100 placeholder-slate-400 px-3 py-2 rounded-md border border-slate-600 focus:border-cyan-500"
+                />
+              </div>
+
+              <div className="max-h-[60vh] overflow-auto p-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {(filteredFoods.length ? filteredFoods : ["No matches"]).map((f, i) => (
+                  typeof f === 'string' && f !== 'No matches' ? (
+                    <button
+                      key={`${f}-${i}`}
+                      onClick={() => insertFood(f)}
+                      className="text-left px-3 py-2 rounded-lg bg-slate-800/70 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500 text-slate-100"
+                    >
+                      {f}
+                    </button>
+                  ) : (
+                    <div key={`empty-${i}`} className="col-span-full text-slate-400 px-2 py-6 text-center">{String(f)}</div>
+                  )
+                ))}
+              </div>
+
+              <div className="p-3 flex justify-between items-center border-t border-slate-700/70 text-xs text-slate-400">
+                <span>Enter to pick • Esc to close</span>
+                <button
+                  onClick={() => setShowFoodPicker(false)}
+                  className="px-2 py-1 rounded-md bg-slate-800 border border-slate-700 hover:border-slate-500 text-slate-200"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         
         <footer className="w-full mt-16 border-t border-slate-700/50 bg-slate-900/60 backdrop-blur">
           <div className="max-w-6xl mx-auto px-4 py-8">

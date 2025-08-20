@@ -1,7 +1,8 @@
 import Head from 'next/head';
 import { useRef, useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaPaperPlane, FaChartBar, FaMapMarkerAlt, FaUtensils, FaLightbulb, FaTimes } from 'react-icons/fa';
+import { FaPaperPlane, FaChartBar, FaMapMarkerAlt, FaUtensils, FaLightbulb, FaTimes, FaLinkedin, FaTwitter } from 'react-icons/fa';
+import { FaMastodon } from 'react-icons/fa6';
 import config from '../utils/config';
 import { handleApiError, isValidSessionId, generateRequestId } from '../utils/errorHandler';
 
@@ -203,30 +204,51 @@ export default function Home() {
           </div>
         </header>
 
-        <main className="w-full max-w-6xl mx-auto flex-grow flex flex-col lg:flex-row items-center justify-center pt-20 gap-8">
-          <div className="w-full md:w-1/2 p-8 space-y-6 text-center md:text-left">
+        <main className="w-full max-w-6xl mx-auto flex-grow flex flex-col lg:flex-row items-center justify-center pt-24 gap-10">
+          <div className="w-full md:w-3/5 lg:w-7/12 p-6 md:p-8 space-y-6 text-center md:text-left">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
             >
-              <h1 className="text-5xl font-bold leading-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-cyan-200">
+              <h1 className="text-6xl lg:text-7xl font-extrabold leading-[1.05] bg-clip-text text-transparent bg-gradient-to-r from-white to-cyan-200 drop-shadow-[0_2px_20px_rgba(34,211,238,0.15)]">
                 Real-Time Food Prices. <br/>
                 <span className="text-cyan-400">Instant Answers.</span>
               </h1>
               
-              <div className="mt-6 space-y-4">
-                <div className="flex items-center gap-3 text-slate-300">
-                  <FaUtensils className="text-cyan-400" />
-                  <p>Current prices across Nigeria's markets</p>
+              <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="group rounded-2xl border border-slate-700/50 bg-slate-800/40 p-5 shadow-md hover:shadow-cyan-500/10 hover:border-cyan-500/40 transition-all">
+                  <div className="flex items-start gap-3">
+                    <span className="text-cyan-400/90 bg-cyan-500/10 p-2 rounded-xl">
+                      <FaUtensils className="text-2xl" />
+                    </span>
+                    <div>
+                      <h3 className="text-slate-100 font-semibold">Live Market Prices</h3>
+                      <p className="text-slate-300/80 text-sm">Current prices across Nigeria's markets</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3 text-slate-300">
-                  <FaChartBar className="text-cyan-400" />
-                  <p>Price trends and forecasts</p>
+                <div className="group rounded-2xl border border-slate-700/50 bg-slate-800/40 p-5 shadow-md hover:shadow-cyan-500/10 hover:border-cyan-500/40 transition-all">
+                  <div className="flex items-start gap-3">
+                    <span className="text-cyan-400/90 bg-cyan-500/10 p-2 rounded-xl">
+                      <FaChartBar className="text-2xl" />
+                    </span>
+                    <div>
+                      <h3 className="text-slate-100 font-semibold">Trends & Forecasts</h3>
+                      <p className="text-slate-300/80 text-sm">See recent trends and simple forecasts</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3 text-slate-300">
-                  <FaMapMarkerAlt className="text-cyan-400" />
-                  <p>Compare prices across locations</p>
+                <div className="group rounded-2xl border border-slate-700/50 bg-slate-800/40 p-5 shadow-md hover:shadow-cyan-500/10 hover:border-cyan-500/40 transition-all">
+                  <div className="flex items-start gap-3">
+                    <span className="text-cyan-400/90 bg-cyan-500/10 p-2 rounded-xl">
+                      <FaMapMarkerAlt className="text-2xl" />
+                    </span>
+                    <div>
+                      <h3 className="text-slate-100 font-semibold">Compare Locations</h3>
+                      <p className="text-slate-300/80 text-sm">Quickly compare across LGAs</p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -245,7 +267,7 @@ export default function Home() {
             initial={{ opacity: 0, scale: 0.95, y: 50 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.7, ease: "easeOut" }} 
-            className="w-full md:w-1/2 h-[75vh] flex flex-col bg-slate-800/50 backdrop-blur-xl rounded-2xl shadow-2xl shadow-cyan-500/10 border border-slate-700/50 overflow-hidden"
+            className="w-full md:w-2/5 lg:w-5/12 h-[58vh] lg:h-[62vh] md:ml-auto flex flex-col bg-slate-800/40 backdrop-blur-xl rounded-2xl shadow-xl shadow-cyan-500/10 border border-slate-700/40 overflow-hidden"
           >
             
             <div className="flex-grow p-6 overflow-y-auto" id="chat-scroll">
@@ -398,8 +420,25 @@ export default function Home() {
           </motion.div>
         </main>
         
-        <footer className="w-full text-center p-4 text-slate-500 text-sm">
-          <p>Powered by real-time market data and AI price predictions</p>
+        <footer className="w-full mt-16 border-t border-slate-700/50 bg-slate-900/60 backdrop-blur">
+          <div className="max-w-6xl mx-auto px-4 py-8">
+            <div className="text-center space-y-4">
+              <p className="text-slate-300 text-sm md:text-base">
+                Designed and built with love and passion by <a href="https://www.linkedin.com/in/abubakar-abdulfatah/" target="_blank" rel="noopener noreferrer" className="text-cyan-300 hover:text-cyan-200 underline underline-offset-4 decoration-cyan-700/60">Abubakar Abdulfatah</a> and GitHub Copilot :)
+              </p>
+              <div className="flex items-center justify-center gap-3 md:gap-4">
+                <a href="https://www.linkedin.com/in/abubakar-abdulfatah/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-700/60 bg-slate-800/60 text-slate-200 hover:border-cyan-500/60 hover:bg-slate-800/80 transition">
+                  <FaLinkedin /> <span className="text-sm">LinkedIn</span>
+                </a>
+                <a href="https://x.com/abubakar_xyz" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-700/60 bg-slate-800/60 text-slate-200 hover:border-cyan-500/60 hover:bg-slate-800/80 transition">
+                  <FaTwitter /> <span className="text-sm">Twitter</span>
+                </a>
+                <a href="https://mstdn.business/@abubakar" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-700/60 bg-slate-800/60 text-slate-200 hover:border-cyan-500/60 hover:bg-slate-800/80 transition">
+                  <FaMastodon /> <span className="text-sm">Mastodon</span>
+                </a>
+              </div>
+            </div>
+          </div>
         </footer>
       </div>
     </>

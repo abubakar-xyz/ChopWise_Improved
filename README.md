@@ -1,8 +1,13 @@
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/4f62172e-9c94-48b8-b658-042ff3c88dc8" alt="ChopWise UI" width="600" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" />
+  <p><em>ChopWise UI showing price prediction interface</em></p>
+</div>
+
 # ChopWise - Improved NLP & UI
 
 ## Overview
 ChopWise helps you query current and future food prices in Nigeria.
-<img width="1195" height="702" alt="image" src="https://github.com/user-attachments/assets/4f62172e-9c94-48b8-b658-042ff3c88dc8" />
+
 
 ### Usage
 - **Chat**: “price of maize white in Lagos”

@@ -2,6 +2,7 @@
 
 ## Overview
 ChopWise helps you query current and future food prices in Nigeria.
+<img width="1195" height="702" alt="image" src="https://github.com/user-attachments/assets/4f62172e-9c94-48b8-b658-042ff3c88dc8" />
 
 ### Usage
 - **Chat**: “price of maize white in Lagos”
